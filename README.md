@@ -33,127 +33,122 @@ and 66 come from).
 
 ## Ping example
 
-<style>
-.s0 { display: inline; color: #c0c0c0 }
-.s1 { display: inline; color: #80c080 }
-.s2 { display: inline; color: #c08080 }
-.s3 { display: inline; color: #808080 }
-</style>
-<pre>  1  <div class="s0"></div><div class="s3">/* Combined headers to read at once rather than one by one */</div><div class="s0"></div>
-  2  <div class="s0"></div><div class="s1">struct</div><div class="s0"> EthernetIPAndICMP </div><div class="s2">{</div><div class="s0"></div>
-  3  <div class="s0">    Ethernet</div><div class="s2">:</div><div class="s0"> EthernetHeader</div><div class="s2">;</div><div class="s0"></div>
-  4  <div class="s0">    IP</div><div class="s2">:</div><div class="s0"> IPHeader</div><div class="s2">;</div><div class="s0"></div>
-  5  <div class="s0">    ICMP</div><div class="s2">:</div><div class="s0"> ICMPHeader</div><div class="s2">;</div><div class="s0"></div>
-  6  <div class="s0"></div><div class="s2">}</div><div class="s0"></div>
-  7  <div class="s0"></div>
-  8  <div class="s0"></div><div class="s3">/* Essential fields from incoming packets that are sent from receiver transform to sender transform */</div><div class="s0"></div>
-  9  <div class="s0"></div><div class="s1">struct</div><div class="s0"> ResponderHeader </div><div class="s2">{</div><div class="s0"></div>
- 10  <div class="s0">    EthernetSource</div><div class="s2">:</div><div class="s0"> EthernetAddress</div><div class="s2">;</div><div class="s0"></div>
- 11  <div class="s0">    EthernetDestination</div><div class="s2">:</div><div class="s0"> EthernetAddress</div><div class="s2">;</div><div class="s0"></div>
- 12  <div class="s0">    IPSource</div><div class="s2">:</div><div class="s0"> IPAddress</div><div class="s2">;</div><div class="s0"></div>
- 13  <div class="s0">    IPDestination</div><div class="s2">:</div><div class="s0"> IPAddress</div><div class="s2">;</div><div class="s0"></div>
- 14  <div class="s0">    IPTotalLength</div><div class="s2">:</div><div class="s0"> Bit</div><div class="s2">[</div><div class="s0">16</div><div class="s2">]</div><div class="s0"></div><div class="s2">;</div><div class="s0"></div>
- 15  <div class="s0">    ICMPChecksum</div><div class="s2">:</div><div class="s0"> Bit</div><div class="s2">[</div><div class="s0">16</div><div class="s2">]</div><div class="s0"></div><div class="s2">;</div><div class="s0"></div>
- 16  <div class="s0"></div><div class="s2">}</div><div class="s0"></div>
- 17  <div class="s0"></div>
- 18  <div class="s0"></div><div class="s3">/* Fragment of incoming packet body (data following Ethernet/IP/ICMP headers) */</div><div class="s0"></div>
- 19  <div class="s0"></div><div class="s1">struct</div><div class="s0"> BodyWord </div><div class="s2">{</div><div class="s0"></div>
- 20  <div class="s0">    Data</div><div class="s2">:</div><div class="s0"> Bit</div><div class="s2">[</div><div class="s0">64</div><div class="s2">]</div><div class="s0"></div><div class="s2">;</div><div class="s0"></div>
- 21  <div class="s0">    ByteCount</div><div class="s2">:</div><div class="s0"> Bit</div><div class="s2">[</div><div class="s0">4</div><div class="s2">]</div><div class="s0"></div><div class="s2">;</div><div class="s0"></div>
- 22  <div class="s0">    Last</div><div class="s2">:</div><div class="s0"> Bit</div><div class="s2">;</div><div class="s0"></div>
- 23  <div class="s0"></div><div class="s2">}</div><div class="s0"></div>
- 24  <div class="s0"></div>
- 25  <div class="s0"></div><div class="s3">/* This block describes a stateful transform that runs continuously, taking inputs, accumulating the state over time and producing outputs.</div>
- 26  <div class="s3"> * At fixed time intervals, &quot;Network&quot; input bus provides next word that has next 4 bytes (+ flag indicating end of the packet).</div>
- 27  <div class="s3"> */</div><div class="s0"></div>
- 28  <div class="s0"></div><div class="s1">transform</div><div class="s0"> PingResponderReceiver </div><div class="s2">(</div><div class="s0">Network</div><div class="s2">:</div><div class="s0"> Network32Word</div><div class="s2">,</div><div class="s0"> HeaderQueue</div><div class="s2">:</div><div class="s0"> ResponderHeader</div><div class="s2">,</div><div class="s0"> BodyQueue</div><div class="s2">:</div><div class="s0"> BodyWord</div><div class="s2">)</div><div class="s0"> </div><div class="s2">{</div><div class="s0"></div>
- 29  <div class="s0">    </div><div class="s1">while</div><div class="s0"> </div><div class="s2">(</div><div class="s0"></div><div class="s1">true</div><div class="s0"></div><div class="s2">)</div><div class="s0"> </div><div class="s2">{</div><div class="s0"></div>
- 30  <div class="s0">        EthernetIPAndICMP Headers </div><div class="s2">=</div><div class="s0"> EthernetIPAndICMP</div><div class="s2">{</div><div class="s0"></div><div class="s2">}</div><div class="s0"></div><div class="s2">;</div><div class="s0"></div>
- 31  <div class="s0">        Bit HeadersAreComplete </div><div class="s2">=</div><div class="s0"> 0</div><div class="s2">;</div><div class="s0"></div>
- 32  <div class="s0">        </div><div class="s3">/* Construct incoming network packet headers from incoming 4-byte words */</div><div class="s0"></div>
- 33  <div class="s0">        ReadFixedLength</div><div class="s2">(</div><div class="s0">where</div><div class="s2">:</div><div class="s0"> Network</div><div class="s2">,</div><div class="s0"> what</div><div class="s2">:</div><div class="s0"> Headers</div><div class="s2">,</div><div class="s0"> complete</div><div class="s2">:</div><div class="s0"> HeadersAreComplete</div><div class="s2">)</div><div class="s0"></div><div class="s2">;</div><div class="s0"></div>
- 34  <div class="s0">        </div><div class="s3">/* If packet is shorter than required minimum headers, skip it */</div><div class="s0"></div>
- 35  <div class="s0">        </div><div class="s1">if</div><div class="s0"> </div><div class="s2">(</div><div class="s0"></div><div class="s2">!</div><div class="s0">HeadersAreComplete</div><div class="s2">)</div><div class="s0"> </div><div class="s2">{</div><div class="s0"></div>
- 36  <div class="s0">            </div><div class="s1">continue</div><div class="s0"></div><div class="s2">;</div><div class="s0"></div>
- 37  <div class="s0">        </div><div class="s2">}</div><div class="s0"></div>
- 38  <div class="s0">        </div><div class="s3">/* Check that it&apos;s ICMP echo request packet. We still need to read the entire packet but the question</div>
- 39  <div class="s3">         * is whether we send a response */</div><div class="s0"></div>
- 40  <div class="s0">        Bit Copy </div><div class="s2">=</div><div class="s0"> Headers</div><div class="s2">.</div><div class="s0">Ethernet</div><div class="s2">.</div><div class="s0">EtherType </div><div class="s2">==</div><div class="s0"> ETHERTYPE_IP </div><div class="s2">&amp;&amp;</div><div class="s0"> Headers</div><div class="s2">.</div><div class="s0">IP</div><div class="s2">.</div><div class="s0">Version </div><div class="s2">==</div><div class="s0"> 4 </div><div class="s2">&amp;&amp;</div><div class="s0"> Headers</div><div class="s2">.</div><div class="s0">IP</div><div class="s2">.</div><div class="s0">HeaderLength </div><div class="s2">==</div><div class="s0"> 5 </div><div class="s2">&amp;&amp;</div><div class="s0"></div>
- 41  <div class="s0">            Headers</div><div class="s2">.</div><div class="s0">IP</div><div class="s2">.</div><div class="s0">Protocol </div><div class="s2">==</div><div class="s0"> IP_PROTOCOL_ICMP </div><div class="s2">&amp;&amp;</div><div class="s0"> Headers</div><div class="s2">.</div><div class="s0">IP</div><div class="s2">.</div><div class="s0">TotalLength </div><div class="s2">&gt;=</div><div class="s0"> 24 </div><div class="s2">&amp;&amp;</div><div class="s0"> Headers</div><div class="s2">.</div><div class="s0">ICMP</div><div class="s2">.</div><div class="s0">Type </div><div class="s2">==</div><div class="s0"> ICMP_ECHO_REQUEST</div><div class="s2">;</div><div class="s0"></div>
- 42  <div class="s0">        </div><div class="s1">if</div><div class="s0"> </div><div class="s2">(</div><div class="s0">Copy</div><div class="s2">)</div><div class="s0"> </div><div class="s2">{</div><div class="s0"></div>
- 43  <div class="s0">            AssertingPush</div><div class="s2">(</div><div class="s0">where</div><div class="s2">:</div><div class="s0"> HeaderQueue</div><div class="s2">,</div><div class="s0"> what</div><div class="s2">:</div><div class="s0"> ResponderHeader</div><div class="s2">{</div><div class="s0"></div>
- 44  <div class="s0">                EthernetSource</div><div class="s2">:</div><div class="s0"> Headers</div><div class="s2">.</div><div class="s0">Ethernet</div><div class="s2">.</div><div class="s0">Destination</div><div class="s2">,</div><div class="s0"> EthernetDestination</div><div class="s2">:</div><div class="s0"> Headers</div><div class="s2">.</div><div class="s0">Ethernet</div><div class="s2">.</div><div class="s0">Source</div><div class="s2">,</div><div class="s0"></div>
- 45  <div class="s0">                IPSource</div><div class="s2">:</div><div class="s0"> Headers</div><div class="s2">.</div><div class="s0">IP</div><div class="s2">.</div><div class="s0">Destination</div><div class="s2">,</div><div class="s0"> IPDestination</div><div class="s2">:</div><div class="s0"> Headers</div><div class="s2">.</div><div class="s0">IP</div><div class="s2">.</div><div class="s0">Source</div><div class="s2">,</div><div class="s0"></div>
- 46  <div class="s0">                IPTotalLength</div><div class="s2">:</div><div class="s0"> Headers</div><div class="s2">.</div><div class="s0">IP</div><div class="s2">.</div><div class="s0">TotalLength</div><div class="s2">,</div><div class="s0"> ICMPChecksum</div><div class="s2">:</div><div class="s0"> Headers</div><div class="s2">.</div><div class="s0">ICMP</div><div class="s2">.</div><div class="s0">ICMPChecksum </div><div class="s2">}</div><div class="s0"></div><div class="s2">)</div><div class="s0"></div><div class="s2">;</div><div class="s0"></div>
- 47  <div class="s0">        </div><div class="s2">}</div><div class="s0"></div>
- 48  <div class="s0">        </div><div class="s3">/* Read rest of the packet and copy it to body queue if it&apos;s ICMP echo request packet */</div><div class="s0"></div>
- 49  <div class="s0">        BodyWord DataWord </div><div class="s2">=</div><div class="s0"> BodyWord</div><div class="s2">{</div><div class="s0"></div><div class="s2">}</div><div class="s0"></div><div class="s2">;</div><div class="s0"></div>
- 50  <div class="s0">        </div><div class="s1">while</div><div class="s0"> </div><div class="s2">(</div><div class="s0"></div><div class="s1">true</div><div class="s0"></div><div class="s2">)</div><div class="s0"> </div><div class="s2">{</div><div class="s0"></div>
- 51  <div class="s0">            ReadVariableLength</div><div class="s2">(</div><div class="s0">where</div><div class="s2">:</div><div class="s0"> Network</div><div class="s2">,</div><div class="s0"> what</div><div class="s2">:</div><div class="s0"> DataWord</div><div class="s2">)</div><div class="s0"></div><div class="s2">;</div><div class="s0"></div>
- 52  <div class="s0">            </div><div class="s1">if</div><div class="s0"> </div><div class="s2">(</div><div class="s0">Copy</div><div class="s2">)</div><div class="s0"> </div><div class="s2">{</div><div class="s0"></div>
- 53  <div class="s0">                AssertingPush</div><div class="s2">(</div><div class="s0">where</div><div class="s2">:</div><div class="s0"> BodyQueue</div><div class="s2">,</div><div class="s0"> what</div><div class="s2">:</div><div class="s0"> DataWord</div><div class="s2">)</div><div class="s0"></div><div class="s2">;</div><div class="s0"></div>
- 54  <div class="s0">            </div><div class="s2">}</div><div class="s0"></div>
- 55  <div class="s0">            </div><div class="s1">if</div><div class="s0"> </div><div class="s2">(</div><div class="s0">DataWord</div><div class="s2">.</div><div class="s0">Last</div><div class="s2">)</div><div class="s0"> </div><div class="s2">{</div><div class="s0"></div>
- 56  <div class="s0">                </div><div class="s1">break</div><div class="s0"></div><div class="s2">;</div><div class="s0"></div>
- 57  <div class="s0">            </div><div class="s2">}</div><div class="s0"></div>
- 58  <div class="s0">        </div><div class="s2">}</div><div class="s0"></div>
- 59  <div class="s0">        </div><div class="s1">step</div><div class="s0"></div><div class="s2">;</div><div class="s0"></div>
- 60  <div class="s0">    </div><div class="s2">}</div><div class="s0"></div>
- 61  <div class="s0"></div><div class="s2">}</div><div class="s0"></div>
- 62  <div class="s0"></div>
- 63  <div class="s0"></div><div class="s3">/* This transform is responsible for driving the network port sender interface. For each request enqueued by Receiver</div>
- 64  <div class="s3"> * transform, writes an echo reply: header with swapped addresses and adjusted checksums, then the original body</div>
- 65  <div class="s3"> */</div><div class="s0"></div>
- 66  <div class="s0"></div><div class="s1">transform</div><div class="s0"> PingResponderSender </div><div class="s2">(</div><div class="s0">Network</div><div class="s2">:</div><div class="s0"> Network32Word</div><div class="s2">,</div><div class="s0"> HeaderQueue</div><div class="s2">:</div><div class="s0"> ResponderHeader</div><div class="s2">,</div><div class="s0"> BodyQueue</div><div class="s2">:</div><div class="s0"> BodyWord</div><div class="s2">)</div><div class="s0"> </div><div class="s2">{</div><div class="s0"></div>
- 67  <div class="s0">    </div><div class="s1">while</div><div class="s0"> </div><div class="s2">(</div><div class="s0"></div><div class="s1">true</div><div class="s0"></div><div class="s2">)</div><div class="s0"> </div><div class="s2">{</div><div class="s0"></div>
- 68  <div class="s0">        </div><div class="s3">/* Check if there&apos;s entry in header queue */</div><div class="s0"></div>
- 69  <div class="s0">        </div><div class="s1">if</div><div class="s0"> </div><div class="s2">(</div><div class="s0">HeaderQueueReader </div><div class="s1">is</div><div class="s0"> ResponderHeader</div><div class="s2">)</div><div class="s0"> </div><div class="s2">{</div><div class="s0"></div>
- 70  <div class="s0">            </div><div class="s3">/* If there is, copy it to local variable and pop it off the queue */</div><div class="s0"></div>
- 71  <div class="s0">            ResponderHeader Header </div><div class="s2">=</div><div class="s0"> HeaderQueueReader</div><div class="s2">.</div><div class="s0">ResponderHeader</div><div class="s2">;</div><div class="s0"></div>
- 72  <div class="s0">            HeaderQueuePop </div><div class="s2">=</div><div class="s0"> 1</div><div class="s2">;</div><div class="s0"></div>
- 73  <div class="s0">            </div><div class="s3">/* Calculate checksums</div>
- 74  <div class="s3">             * IP checksum is calculated from scratch</div>
- 75  <div class="s3">             * 0x5501 is 0x4500 (version+header length) + 0x1000 (time to live) + 0x0001 (ICMP protocol). Identification and flags header fields are 0</div>
- 76  <div class="s3">             * ICMP checksum is calculated from original (presumably correct checksum) by adjusting it for replacing</div>
- 77  <div class="s3">             * echo request (8) with echo response (0) in high byte of 16-bit packet word</div>
- 78  <div class="s3">             */</div><div class="s0"></div>
- 79  <div class="s0">            Bit</div><div class="s2">[</div><div class="s0">16</div><div class="s2">]</div><div class="s0"> IPChecksum </div><div class="s2">=</div><div class="s0"> </div><div class="s2">~</div><div class="s0">InternetChecksum</div><div class="s2">(</div><div class="s0">0x5501</div><div class="s2">,</div><div class="s0"> Header</div><div class="s2">.</div><div class="s0">IPTotalLength</div><div class="s2">,</div><div class="s0"> Header</div><div class="s2">.</div><div class="s0">IPSource</div><div class="s2">,</div><div class="s0"> Header</div><div class="s2">.</div><div class="s0">IPDestination</div><div class="s2">)</div><div class="s0"></div><div class="s2">;</div><div class="s0"></div>
- 80  <div class="s0">            Bit</div><div class="s2">[</div><div class="s0">16</div><div class="s2">]</div><div class="s0"> ICMPChecksum </div><div class="s2">=</div><div class="s0"> InternetChecksum</div><div class="s2">(</div><div class="s0">Header</div><div class="s2">.</div><div class="s0">ICMPChecksum</div><div class="s2">,</div><div class="s0"> 0x800</div><div class="s2">)</div><div class="s0"></div><div class="s2">;</div><div class="s0"></div>
- 81  <div class="s0">            </div><div class="s3">/* Start writing on the next step - checksum calculations are too slow to fit in same step as WriteFixedLength */</div><div class="s0"></div>
- 82  <div class="s0">            </div><div class="s1">step</div><div class="s0"></div><div class="s2">;</div><div class="s0"></div>
- 83  <div class="s0">            </div><div class="s3">/* Write header */</div><div class="s0"></div>
- 84  <div class="s0">            WriteFixedLength</div><div class="s2">(</div><div class="s0">where</div><div class="s2">:</div><div class="s0"> Network</div><div class="s2">,</div><div class="s0"> what</div><div class="s2">:</div><div class="s0"> EthernetIPAndICMP</div><div class="s2">{</div><div class="s0"></div>
- 85  <div class="s0">                Ethernet</div><div class="s2">:</div><div class="s0"> EthernetHeader</div><div class="s2">{</div><div class="s0">Destination</div><div class="s2">:</div><div class="s0"> Header</div><div class="s2">.</div><div class="s0">EthernetDestination</div><div class="s2">,</div><div class="s0"> Source</div><div class="s2">:</div><div class="s0"> Header</div><div class="s2">.</div><div class="s0">EthernetSource</div><div class="s2">,</div><div class="s0"> EtherType</div><div class="s2">:</div><div class="s0"> ETHERTYPE_IP</div><div class="s2">}</div><div class="s0"></div><div class="s2">,</div><div class="s0"></div>
- 86  <div class="s0">                IP</div><div class="s2">:</div><div class="s0"> IPHeader</div><div class="s2">{</div><div class="s0">Version</div><div class="s2">:</div><div class="s0"> 4</div><div class="s2">,</div><div class="s0"> HeaderLength</div><div class="s2">:</div><div class="s0"> 5</div><div class="s2">,</div><div class="s0"> HeaderChecksum</div><div class="s2">:</div><div class="s0"> IPChecksum</div><div class="s2">,</div><div class="s0"> TimeToLive</div><div class="s2">:</div><div class="s0"> 0x10</div><div class="s2">,</div><div class="s0"> TotalLength</div><div class="s2">:</div><div class="s0"> Header</div><div class="s2">.</div><div class="s0">IPTotalLength</div><div class="s2">,</div><div class="s0"></div>
- 87  <div class="s0">                             Protocol</div><div class="s2">:</div><div class="s0"> IP_PROTOCOL_ICMP</div><div class="s2">,</div><div class="s0"> Source</div><div class="s2">:</div><div class="s0"> Header</div><div class="s2">.</div><div class="s0">IPSource</div><div class="s2">,</div><div class="s0"> Destination</div><div class="s2">:</div><div class="s0"> Header</div><div class="s2">.</div><div class="s0">IPDestination</div><div class="s2">}</div><div class="s0"></div><div class="s2">,</div><div class="s0"></div>
- 88  <div class="s0">                ICMP</div><div class="s2">:</div><div class="s0"> ICMPHeader</div><div class="s2">{</div><div class="s0">Type</div><div class="s2">:</div><div class="s0"> ICMP_ECHO_RESPONSE</div><div class="s2">,</div><div class="s0"> ICMPChecksum</div><div class="s2">:</div><div class="s0"> ICMPChecksum</div><div class="s2">}</div><div class="s0"></div><div class="s2">}</div><div class="s0"></div><div class="s2">)</div><div class="s0"></div><div class="s2">;</div><div class="s0"></div>
- 89  <div class="s0">            </div><div class="s1">while</div><div class="s0"> </div><div class="s2">(</div><div class="s0"></div><div class="s1">true</div><div class="s0"></div><div class="s2">)</div><div class="s0"> </div><div class="s2">{</div><div class="s0"></div>
- 90  <div class="s0">                </div><div class="s3">/* Request body queue should not be empty by now because we are behind Receiver by at least 10 steps that it takes to</div>
- 91  <div class="s3">                 * write out headers</div>
- 92  <div class="s3">                 */</div><div class="s0"></div>
- 93  <div class="s0">                BodyWord DataWord </div><div class="s2">=</div><div class="s0"> BodyQueueReader</div><div class="s2">.</div><div class="s0">BodyWord</div><div class="s2">;</div><div class="s0"></div>
- 94  <div class="s0">                BodyQueuePop </div><div class="s2">=</div><div class="s0"> 1</div><div class="s2">;</div><div class="s0"></div>
- 95  <div class="s0">                WriteVariableLength</div><div class="s2">(</div><div class="s0">where</div><div class="s2">:</div><div class="s0"> Network</div><div class="s2">,</div><div class="s0"> what</div><div class="s2">:</div><div class="s0"> DataWord</div><div class="s2">)</div><div class="s0"></div><div class="s2">;</div><div class="s0"></div>
- 96  <div class="s0">                </div><div class="s1">if</div><div class="s0"> </div><div class="s2">(</div><div class="s0">DataWord</div><div class="s2">.</div><div class="s0">Last</div><div class="s2">)</div><div class="s0"> </div><div class="s2">{</div><div class="s0"></div>
- 97  <div class="s0">                    </div><div class="s1">break</div><div class="s0"></div><div class="s2">;</div><div class="s0"></div>
- 98  <div class="s0">                </div><div class="s2">}</div><div class="s0"></div>
- 99  <div class="s0">            </div><div class="s2">}</div><div class="s0"></div>
-100  <div class="s0">        </div><div class="s2">}</div><div class="s0"></div>
-101  <div class="s0">        </div><div class="s1">step</div><div class="s0"></div><div class="s2">;</div><div class="s0"></div>
-102  <div class="s0">    </div><div class="s2">}</div><div class="s0"></div>
-103  <div class="s0"></div><div class="s2">}</div><div class="s0"></div>
-104  <div class="s0"></div>
-105  <div class="s0"></div><div class="s1">system</div><div class="s0"> </div><div class="s2">{</div><div class="s0"></div>
-106  <div class="s0">    </div><div class="s1">instance</div><div class="s0"> Receiver</div><div class="s2">:</div><div class="s0"> PingResponderReceiver</div><div class="s2">;</div><div class="s0"></div>
-107  <div class="s0">    </div><div class="s1">instance</div><div class="s0"> Sender</div><div class="s2">:</div><div class="s0"> PingResponderSender</div><div class="s2">;</div><div class="s0"></div>
-108  <div class="s0">    </div><div class="s3">/* Native module connecting to Ethernet port */</div><div class="s0"></div>
-109  <div class="s0">    </div><div class="s1">wire</div><div class="s0"> Ethernet</div><div class="s2">.</div><div class="s0">Receive </div><div class="s2">-&gt;</div><div class="s0"> Receiver</div><div class="s2">.</div><div class="s0">Network</div><div class="s2">;</div><div class="s0"></div>
-110  <div class="s0">    </div><div class="s1">queue</div><div class="s0"> Receiver</div><div class="s2">.</div><div class="s0">HeaderQueue </div><div class="s2">-&gt;</div><div class="s0"> Sender</div><div class="s2">.</div><div class="s0">HeaderQueue</div><div class="s2">;</div><div class="s0"></div>
-111  <div class="s0">    </div><div class="s1">queue</div><div class="s0"> Receiver</div><div class="s2">.</div><div class="s0">BodyQueue </div><div class="s2">-&gt;</div><div class="s0"> Sender</div><div class="s2">.</div><div class="s0">BodyQueue</div><div class="s2">;</div><div class="s0"></div>
-112  <div class="s0">    </div><div class="s1">wire</div><div class="s0"> </div><div class="s1">with</div><div class="s0"> </div><div class="s1">backpressure</div><div class="s0"> Sender</div><div class="s2">.</div><div class="s0">Network </div><div class="s2">-&gt;</div><div class="s0"> Ethernet</div><div class="s2">.</div><div class="s0">Send</div><div class="s2">;</div><div class="s0"></div>
-113  <div class="s0"></div><div class="s2">}</div><div class="s0"></div>
-114  <div class="s0"></div>
-</pre>
+```
+  1  /* Combined headers to read at once rather than one by one */
+  2  struct EthernetIPAndICMP {
+  3      Ethernet: EthernetHeader;
+  4      IP: IPHeader;
+  5      ICMP: ICMPHeader;
+  6  }
+  7  
+  8  /* Essential fields from incoming packets that are sent from receiver transform to sender transform */
+  9  struct ResponderHeader {
+ 10      EthernetSource: EthernetAddress;
+ 11      EthernetDestination: EthernetAddress;
+ 12      IPSource: IPAddress;
+ 13      IPDestination: IPAddress;
+ 14      IPTotalLength: Bit[16];
+ 15      ICMPChecksum: Bit[16];
+ 16  }
+ 17  
+ 18  /* Fragment of incoming packet body (data following Ethernet/IP/ICMP headers) */
+ 19  struct BodyWord {
+ 20      Data: Bit[64];
+ 21      ByteCount: Bit[4];
+ 22      Last: Bit;
+ 23  }
+ 24  
+ 25  /* This block describes a stateful transform that runs continuously, taking inputs, accumulating the state over time and producing outputs.
+ 26   * At fixed time intervals, Network input bus provides next word that has next 4 bytes (+ flag indicating end of the packet).
+ 27   */
+ 28  transform PingResponderReceiver (Network: Network32Word, HeaderQueue: ResponderHeader, BodyQueue: BodyWord) {
+ 29      while (true) {
+ 30          EthernetIPAndICMP Headers = EthernetIPAndICMP{};
+ 31          Bit HeadersAreComplete = 0;
+ 32          /* Construct incoming network packet headers from incoming 4-byte words */
+ 33          ReadFixedLength(where: Network, what: Headers, complete: HeadersAreComplete);
+ 34          /* If packet is shorter than required minimum headers, skip it */
+ 35          if (!HeadersAreComplete) {
+ 36              continue;
+ 37          }
+ 38          /* Check that it's ICMP echo request packet. We still need to read the entire packet but the question
+ 39           * is whether we send a response */
+ 40          Bit Copy = Headers.Ethernet.EtherType == ETHERTYPE_IP && Headers.IP.Version == 4 && Headers.IP.HeaderLength == 5 &&
+ 41              Headers.IP.Protocol == IP_PROTOCOL_ICMP && Headers.IP.TotalLength >= 24 && Headers.ICMP.Type == ICMP_ECHO_REQUEST;
+ 42          if (Copy) {
+ 43              AssertingPush(where: HeaderQueue, what: ResponderHeader{
+ 44                  EthernetSource: Headers.Ethernet.Destination, EthernetDestination: Headers.Ethernet.Source,
+ 45                  IPSource: Headers.IP.Destination, IPDestination: Headers.IP.Source,
+ 46                  IPTotalLength: Headers.IP.TotalLength, ICMPChecksum: Headers.ICMP.ICMPChecksum });
+ 47          }
+ 48          /* Read rest of the packet and copy it to body queue if it's ICMP echo request packet */
+ 49          BodyWord DataWord = BodyWord{};
+ 50          while (true) {
+ 51              ReadVariableLength(where: Network, what: DataWord);
+ 52              if (Copy) {
+ 53                  AssertingPush(where: BodyQueue, what: DataWord);
+ 54              }
+ 55              if (DataWord.Last) {
+ 56                  break;
+ 57              }
+ 58          }
+ 59          step;
+ 60      }
+ 61  }
+ 62  
+ 63  /* This transform is responsible for driving the network port sender interface. For each request enqueued by Receiver
+ 64   * transform, writes an echo reply: header with swapped addresses and adjusted checksums, then the original body
+ 65   */
+ 66  transform PingResponderSender (Network: Network32Word, HeaderQueue: ResponderHeader, BodyQueue: BodyWord) {
+ 67      while (true) {
+ 68          /* Check if there's entry in header queue */
+ 69          if (HeaderQueueReader is ResponderHeader) {
+ 70              /* If there is, copy it to local variable and pop it off the queue */
+ 71              ResponderHeader Header = HeaderQueueReader.ResponderHeader;
+ 72              HeaderQueuePop = 1;
+ 73              /* Calculate checksums
+ 74               * IP checksum is calculated from scratch
+ 75               * 0x5501 is 0x4500 (version+header length) + 0x1000 (time to live) + 0x0001 (ICMP protocol). Identification and flags header fields are 0
+ 76               * ICMP checksum is calculated from original (presumably correct checksum) by adjusting it for replacing
+ 77               * echo request (8) with echo response (0) in high byte of 16-bit packet word
+ 78               */
+ 79              Bit[16] IPChecksum = ~InternetChecksum(0x5501, Header.IPTotalLength, Header.IPSource, Header.IPDestination);
+ 80              Bit[16] ICMPChecksum = InternetChecksum(Header.ICMPChecksum, 0x800);
+ 81              /* Start writing on the next step - checksum calculations are too slow to fit in same step as WriteFixedLength */
+ 82              step;
+ 83              /* Write header */
+ 84              WriteFixedLength(where: Network, what: EthernetIPAndICMP{
+ 85                  Ethernet: EthernetHeader{Destination: Header.EthernetDestination, Source: Header.EthernetSource, EtherType: ETHERTYPE_IP},
+ 86                  IP: IPHeader{Version: 4, HeaderLength: 5, HeaderChecksum: IPChecksum, TimeToLive: 0x10, TotalLength: Header.IPTotalLength,
+ 87                               Protocol: IP_PROTOCOL_ICMP, Source: Header.IPSource, Destination: Header.IPDestination},
+ 88                  ICMP: ICMPHeader{Type: ICMP_ECHO_RESPONSE, ICMPChecksum: ICMPChecksum}});
+ 89              while (true) {
+ 90                  /* Request body queue should not be empty by now because we are behind Receiver by at least 10 steps that it takes to
+ 91                   * write out headers
+ 92                   */
+ 93                  BodyWord DataWord = BodyQueueReader.BodyWord;
+ 94                  BodyQueuePop = 1;
+ 95                  WriteVariableLength(where: Network, what: DataWord);
+ 96                  if (DataWord.Last) {
+ 97                      break;
+ 98                  }
+ 99              }
+100          }
+101          step;
+102      }
+103  }
+104  
+105  system {
+106      instance Receiver: PingResponderReceiver;
+107      instance Sender: PingResponderSender;
+108      /* Native module connecting to Ethernet port */
+109      wire Ethernet.Receive -> Receiver.Network;
+110      queue Receiver.HeaderQueue -> Sender.HeaderQueue;
+111      queue Receiver.BodyQueue -> Sender.BodyQueue;
+112      wire with backpressure Sender.Network -> Ethernet.Send;
+113  }
+114  
+```
 
 ## How is this different from software?
 
@@ -162,57 +157,7 @@ that is then loaded into the FPGA card. Each transform describes how the input s
 state and becomes a dedicated circuit on the chip. All transforms run continuously in parallel and communicate using the connections
 and queues listed in the system section.
 
-<svg width=600 height=440>
-  <line x1="30" y1="430" x2="30" y2="30" stroke="white" stroke-width="1"/>
-  <line x1="30" y1="30" x2="0" y2="30" stroke="white" stroke-width="1"/>
-  <rect x="30" y="100" width="500" height="300" stroke="white" stroke-width="1" fill="none"/>
-  <rect x="80" y="400" width="200" height="30" stroke="white" stroke-width="1" fill="none"/>
-  <line x1="100" y1="400" x2="100" y2="430" stroke="white" stroke-width="1"/>
-  <line x1="120" y1="400" x2="120" y2="430" stroke="white" stroke-width="1"/>
-  <line x1="140" y1="400" x2="140" y2="430" stroke="white" stroke-width="1"/>
-  <line x1="160" y1="400" x2="160" y2="430" stroke="white" stroke-width="1"/>
-  <line x1="180" y1="400" x2="180" y2="430" stroke="white" stroke-width="1"/>
-  <line x1="200" y1="400" x2="200" y2="430" stroke="white" stroke-width="1"/>
-  <line x1="220" y1="400" x2="220" y2="430" stroke="white" stroke-width="1"/>
-  <line x1="240" y1="400" x2="240" y2="430" stroke="white" stroke-width="1"/>
-  <line x1="260" y1="400" x2="260" y2="430" stroke="white" stroke-width="1"/>
-  <rect x="0" y="240" width="170" height="30" stroke="white" stroke-width="1" fill="none"/>
-  <text x="40" y="255" fill="white" alignment-baseline="central">QSFP28 Ethernet port</text>
-  <rect x="190" y="130" width="300" height="240" stroke="white" stroke-width="1" fill="#404040"/>
-  <text x="200" y="140" fill="white" alignment-baseline="hanging">FPGA chip (XCU50)</text>
-  <line x1="170" y1="250" x2="210" y2="250" stroke="white" stroke-width="1"/>
-  <line x1="210" y1="250" x2="210" y2="190" stroke="white" stroke-width="1"/>
-  <line x1="210" y1="190" x2="230" y2="190" stroke="white" stroke-width="1"/>
-  <line x1="230" y1="190" x2="225" y2="187" stroke="white" stroke-width="1"/>
-  <line x1="230" y1="190" x2="225" y2="193" stroke="white" stroke-width="1"/>
-  <rect x="230" y="160" width="240" height="60" stroke="white" stroke-width="1" fill="none"/>
-  <text x="240" y="170" fill="white" alignment-baseline="hanging">Receiver transform</text>
-  <line x1="310" y1="220" x2="310" y2="240" stroke="white" stroke-width="1"/>
-  <line x1="310" y1="240" x2="307" y2="235" stroke="white" stroke-width="1"/>
-  <line x1="310" y1="240" x2="313" y2="235" stroke="white" stroke-width="1"/>
-  <line x1="310" y1="270" x2="310" y2="290" stroke="white" stroke-width="1"/>
-  <line x1="310" y1="290" x2="307" y2="285" stroke="white" stroke-width="1"/>
-  <line x1="310" y1="290" x2="313" y2="285" stroke="white" stroke-width="1"/>
-  <rect x="240" y="240" width="140" height="30" stroke="white" stroke-width="1" fill="none"/>
-  <text x="250" y="245" fill="white" alignment-baseline="hanging">Header</text>
-  <text x="250" y="255" fill="white" alignment-baseline="hanging">Queue</text>
-  <line x1="430" y1="220" x2="430" y2="240" stroke="white" stroke-width="1"/>
-  <line x1="430" y1="240" x2="427" y2="235" stroke="white" stroke-width="1"/>
-  <line x1="430" y1="240" x2="433" y2="235" stroke="white" stroke-width="1"/>
-  <line x1="430" y1="270" x2="430" y2="290" stroke="white" stroke-width="1"/>
-  <line x1="430" y1="290" x2="427" y2="285" stroke="white" stroke-width="1"/>
-  <line x1="430" y1="290" x2="433" y2="285" stroke="white" stroke-width="1"/>
-  <rect x="400" y="240" width="60" height="30" stroke="white" stroke-width="1" fill="none"/>
-  <text x="410" y="245" fill="white" alignment-baseline="hanging">Body</text>
-  <text x="410" y="255" fill="white" alignment-baseline="hanging">Queue</text>
-  <rect x="230" y="290" width="240" height="60" stroke="white" stroke-width="1" fill="none"/>
-  <text x="240" y="300" fill="white" alignment-baseline="hanging">Sender transform</text>
-  <line x1="170" y1="260" x2="175" y2="257" stroke="white" stroke-width="1"/>
-  <line x1="170" y1="260" x2="175" y2="263" stroke="white" stroke-width="1"/>
-  <line x1="170" y1="260" x2="210" y2="260" stroke="white" stroke-width="1"/>
-  <line x1="210" y1="260" x2="210" y2="320" stroke="white" stroke-width="1"/>
-  <line x1="210" y1="320" x2="230" y2="320" stroke="white" stroke-width="1"/>
-</svg>
+<img src="documentation/Card.svg" width="600" height="440"/>
 
 The second difference is timing. CPUs have many mechanisms that enable scalability of complexity but come at the cost
 of deterministic timing:
@@ -239,7 +184,6 @@ data (counterpart of receive gap explained on [this page](documentation/ReadFixe
 
 <details>
 <summary>Trace of concurrent execution</summary>
-<style>td { vertical-align: top }</style>
 <table><tr><td rowspan=4 colspan=1>Time</td><td rowspan=1 colspan=1>Sender</td><td rowspan=1 colspan=3>Ethernet</td><td rowspan=1 colspan=3>Receiver</td></tr>
 <tr><td rowspan=1 colspan=1>Inputs</td><td rowspan=3 colspan=1>Data</td><td rowspan=3 colspan=1>Byte<br/>Count</td><td rowspan=3 colspan=1>Last</td><td rowspan=1 colspan=3>Inputs</td></tr>
 <tr><td rowspan=2 colspan=1>Network<br/>Ready</td><td rowspan=1 colspan=3>Network</td></tr>

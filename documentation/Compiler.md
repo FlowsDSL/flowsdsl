@@ -58,32 +58,7 @@ Expression =
 [statement F] step;
 </pre>
 
-<svg width="300" height="180">
-  <rect x="100" y="20" width = "40" height="30" stroke="white" color="black"/>
-  <text x="120" y="35" fill="white" alignment-baseline="middle" text-anchor="middle">B</text>
-  <line x1="100" y1="35" x2="80" y2="35" stroke="white" stroke-width="1"/>
-  <line x1="80" y1="35" x2="80" y2="80" stroke="white" stroke-width="1"/>
-  <line x1="77" y1="75" x2="80" y2="80" stroke="white" stroke-width="1"/>
-  <line x1="83" y1="75" x2="80" y2="80" stroke="white" stroke-width="1"/>
-  <rect x="60" y="80" width="40" height="30" stroke="white" color="black"/>
-  <text x="80" y="95" fill="white" alignment-baseline="middle" text-anchor="middle">C</text>
-  <line x1="80" y1="110" x2="80" y2="155" stroke="white" stroke-width="1"/>
-  <line x1="80" y1="155" x2="100" y2="155" stroke="white" stroke-width="1"/>
-  <line x1="95" y1="152" x2="100" y2="155" stroke="white" stroke-width="1"/>
-  <line x1="95" y1="158" x2="100" y2="155" stroke="white" stroke-width="1"/>
-  <line x1="140" y1="35" x2="160" y2="35" stroke="white" stroke-width="1"/>
-  <line x1="160" y1="35" x2="160" y2="80" stroke="white" stroke-width="1"/>
-  <line x1="157" y1="75" x2="160" y2="80" stroke="white" stroke-width="1"/>
-  <line x1="163" y1="75" x2="160" y2="80" stroke="white" stroke-width="1"/>
-  <rect x="140" y="80" width="40" height="30" stroke="white" color="black"/>
-  <text x="160" y="95" fill="white" alignment-baseline="middle" text-anchor="middle">D</text>
-  <rect x="100" y="140" width="40" height="30" stroke="white" color="black"/>
-  <text x="120" y="155" fill="white" alignment-baseline="middle" text-anchor="middle">E</text>
-  <line x1="160" y1="110" x2="160" y2="155" stroke="white" stroke-width="1"/>
-  <line x1="160" y1="155" x2="140" y2="155" stroke="white" stroke-width="1"/>
-  <line x1="145" y1="152" x2="140" y2="155" stroke="white" stroke-width="1"/>
-  <line x1="145" y1="158" x2="140" y2="155" stroke="white" stroke-width="1"/>
-</svg>
+<img src="CFG.svg" width="300" height="180"/>
 
 It is important to note that statements are really a convenient mental model of the program construction but it does
 not reflect what happens in FPGA. In FPGA, the current state is taken at the boundary of the clock cycle (marked

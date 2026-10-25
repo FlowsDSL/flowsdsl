@@ -584,7 +584,7 @@ public class TraceViewer {
                         for (ColumnOrGroup cog : fieldColumns) {
                             depth = Math.max(depth, cog.name.length);
                         }
-                        StringBuilder result = new StringBuilder("<style>td { vertical-align: top }</style>\n<table>");
+                        StringBuilder result = new StringBuilder("<table>");
                         for (int level = 0; level < depth; level++) {
                             result.append("<tr>");
                             String name = null;

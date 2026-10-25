@@ -24,7 +24,7 @@ the middle of packet. Block with sync header value of 2 contains control informa
 </table>
 Block types 0 and 3 are invalid.
 
-<style>td { vertical-align: top }</style><table><tr><td rowspan=4 colspan=1>Time</td><td rowspan=1 colspan=5>Receiver</td><td rowspan=1 colspan=2>Raw<br/>Unscrambled<br/>Ethernet</td></tr>
+<table><tr><td rowspan=4 colspan=1>Time</td><td rowspan=1 colspan=5>Receiver</td><td rowspan=1 colspan=2>Raw<br/>Unscrambled<br/>Ethernet</td></tr>
 <tr><td rowspan=1 colspan=5>Inputs</td><td rowspan=3 colspan=1>Header</td><td rowspan=3 colspan=1>Data</td></tr>
 <tr><td rowspan=1 colspan=3>Network</td><td rowspan=2 colspan=1>Header<br/>Queue<br/>Ready</td><td rowspan=2 colspan=1>Body<br/>Queue<br/>Ready</td></tr>
 <tr><td rowspan=1 colspan=1>Data</td><td rowspan=1 colspan=1>Byte<br/>Count</td><td rowspan=1 colspan=1>Last</td></tr>
@@ -63,129 +63,7 @@ Block types 0 and 3 are invalid.
 
 Scrambling is a fairly simple transformation, applied to each incoming bit, starting from bottom bit to top bit:
 
-<svg width="800" height="200">
-  <rect x="30" y="30" width="60" height="43" stroke="white" stroke-width="1" fill="none"/>
-  <text x="60" y="45" fill="white" alignment-baseline="middle" text-anchor="middle">Incoming</text>
-  <text x="60" y="60" fill="white" alignment-baseline="middle" text-anchor="middle">bit</text>
-  <rect x="110" y="30" width="60" height="43" stroke="white" stroke-width="1" fill="none"/>
-  <text x="140" y="45" fill="white" alignment-baseline="middle" text-anchor="middle">State</text>
-  <text x="140" y="60" fill="white" alignment-baseline="middle" text-anchor="middle">bit 0</text>
-  <rect x="190" y="30" width="60" height="43" stroke="white" stroke-width="1" fill="none"/>
-  <text x="220" y="45" fill="white" alignment-baseline="middle" text-anchor="middle">State</text>
-  <text x="220" y="60" fill="white" alignment-baseline="middle" text-anchor="middle">bit 1</text>
-  <text x="280" y="50" fill="white" alignment-baseline="middle" text-anchor="middle">...</text>
-  <rect x="310" y="30" width="60" height="43" stroke="white" stroke-width="1" fill="none"/>
-  <text x="340" y="45" fill="white" alignment-baseline="middle" text-anchor="middle">State</text>
-  <text x="340" y="60" fill="white" alignment-baseline="middle" text-anchor="middle">bit 37</text>
-  <rect x="390" y="30" width="60" height="43" stroke="white" stroke-width="1" fill="none"/>
-  <text x="420" y="45" fill="white" alignment-baseline="middle" text-anchor="middle">State</text>
-  <text x="420" y="60" fill="white" alignment-baseline="middle" text-anchor="middle">bit 38</text>
-  <rect x="470" y="30" width="60" height="43" stroke="white" stroke-width="1" fill="none"/>
-  <text x="500" y="45" fill="white" alignment-baseline="middle" text-anchor="middle">State</text>
-  <text x="500" y="60" fill="white" alignment-baseline="middle" text-anchor="middle">bit 39</text>
-  <text x="560" y="50" fill="white" alignment-baseline="middle" text-anchor="middle">...</text>
-  <rect x="590" y="30" width="60" height="43" stroke="white" stroke-width="1" fill="none"/>
-  <text x="620" y="45" fill="white" alignment-baseline="middle" text-anchor="middle">State</text>
-  <text x="620" y="60" fill="white" alignment-baseline="middle" text-anchor="middle">bit 56</text>
-  <rect x="670" y="30" width="60" height="43" stroke="white" stroke-width="1" fill="none"/>
-  <text x="700" y="45" fill="white" alignment-baseline="middle" text-anchor="middle">State</text>
-  <text x="700" y="60" fill="white" alignment-baseline="middle" text-anchor="middle">bit 57</text>
-
-  <line x1="80" y1="105" x2="130" y2="105" stroke="white" stroke-width="1"/>
-  <line x1="130" y1="105" x2="130" y2="140" stroke="white" stroke-width="1"/>
-  <line x1="130" y1="140" x2="127" y2="135" stroke="white" stroke-width="1"/>
-  <line x1="130" y1="140" x2="133" y2="135" stroke="white" stroke-width="1"/>
-
-  <line x1="150" y1="73" x2="150" y2="95" stroke="white" stroke-width="1"/>
-  <line x1="150" y1="95" x2="210" y2="95" stroke="white" stroke-width="1"/>
-  <line x1="210" y1="95" x2="210" y2="140" stroke="white" stroke-width="1"/>
-  <line x1="210" y1="140" x2="207" y2="135" stroke="white" stroke-width="1"/>
-  <line x1="210" y1="140" x2="213" y2="135" stroke="white" stroke-width="1"/>
-
-  <line x1="230" y1="73" x2="230" y2="95" stroke="white" stroke-width="1"/>
-  <line x1="230" y1="95" x2="250" y2="95" stroke="white" stroke-width="1"/>
-
-  <line x1="310" y1="95" x2="330" y2="95" stroke="white" stroke-width="1"/>
-  <line x1="330" y1="95" x2="330" y2="140" stroke="white" stroke-width="1"/>
-  <line x1="330" y1="140" x2="327" y2="135" stroke="white" stroke-width="1"/>
-  <line x1="330" y1="140" x2="333" y2="135" stroke="white" stroke-width="1"/>
-
-  <line x1="350" y1="73" x2="350" y2="95" stroke="white" stroke-width="1"/>
-  <line x1="350" y1="95" x2="410" y2="95" stroke="white" stroke-width="1"/>
-  <line x1="410" y1="95" x2="410" y2="140" stroke="white" stroke-width="1"/>
-  <line x1="410" y1="140" x2="407" y2="135" stroke="white" stroke-width="1"/>
-  <line x1="410" y1="140" x2="413" y2="135" stroke="white" stroke-width="1"/>
-
-  <line x1="430" y1="73" x2="430" y2="95" stroke="white" stroke-width="1"/>
-  <line x1="430" y1="95" x2="490" y2="95" stroke="white" stroke-width="1"/>
-  <line x1="490" y1="95" x2="490" y2="140" stroke="white" stroke-width="1"/>
-  <line x1="490" y1="140" x2="487" y2="135" stroke="white" stroke-width="1"/>
-  <line x1="490" y1="140" x2="493" y2="135" stroke="white" stroke-width="1"/>
-
-  <line x1="510" y1="73" x2="510" y2="95" stroke="white" stroke-width="1"/>
-  <line x1="510" y1="95" x2="530" y2="95" stroke="white" stroke-width="1"/>
-
-  <line x1="590" y1="95" x2="610" y2="95" stroke="white" stroke-width="1"/>
-  <line x1="610" y1="95" x2="610" y2="140" stroke="white" stroke-width="1"/>
-  <line x1="610" y1="140" x2="607" y2="135" stroke="white" stroke-width="1"/>
-  <line x1="610" y1="140" x2="613" y2="135" stroke="white" stroke-width="1"/>
-
-  <line x1="630" y1="73" x2="630" y2="95" stroke="white" stroke-width="1"/>
-  <line x1="630" y1="95" x2="690" y2="95" stroke="white" stroke-width="1"/>
-  <line x1="690" y1="95" x2="690" y2="140" stroke="white" stroke-width="1"/>
-  <line x1="690" y1="140" x2="687" y2="135" stroke="white" stroke-width="1"/>
-  <line x1="690" y1="140" x2="693" y2="135" stroke="white" stroke-width="1"/>
-
-  <line x1="710" y1="30" x2="710" y2="10" stroke="white" stroke-width="1"/>
-  <line x1="710" y1="10" x2="10" y2="10" stroke="white" stroke-width="1"/>
-  <line x1="10" y1="10" x2="10" y2="110" stroke="white" stroke-width="1"/>
-  <line x1="10" y1="110" x2="40" y2="110" stroke="white" stroke-width="1"/>
-  <line x1="40" y1="110" x2="35" y2="107" stroke="white" stroke-width="1"/>
-  <line x1="40" y1="110" x2="35" y2="113" stroke="white" stroke-width="1"/>
-
-  <line x1="420" y1="30" x2="420" y2="20" stroke="white" stroke-width="1"/>
-  <line x1="420" y1="20" x2="20" y2="20" stroke="white" stroke-width="1"/>
-  <line x1="20" y1="20" x2="20" y2="100" stroke="white" stroke-width="1"/>
-  <line x1="20" y1="100" x2="40" y2="100" stroke="white" stroke-width="1"/>
-  <line x1="40" y1="100" x2="35" y2="97" stroke="white" stroke-width="1"/>
-  <line x1="40" y1="100" x2="35" y2="103" stroke="white" stroke-width="1"/>
-
-  <rect x="30" y="140" width="60" height="43" stroke="white" stroke-width="1" fill="none"/>
-  <text x="60" y="155" fill="white" alignment-baseline="middle" text-anchor="middle">Outgoing</text>
-  <text x="60" y="170" fill="white" alignment-baseline="middle" text-anchor="middle">bit</text>
-  <rect x="110" y="140" width="60" height="43" stroke="white" stroke-width="1" fill="none"/>
-  <text x="140" y="155" fill="white" alignment-baseline="middle" text-anchor="middle">State</text>
-  <text x="140" y="170" fill="white" alignment-baseline="middle" text-anchor="middle">bit 0</text>
-  <rect x="190" y="140" width="60" height="43" stroke="white" stroke-width="1" fill="none"/>
-  <text x="220" y="155" fill="white" alignment-baseline="middle" text-anchor="middle">State</text>
-  <text x="220" y="170" fill="white" alignment-baseline="middle" text-anchor="middle">bit 1</text>
-  <text x="280" y="160" fill="white" alignment-baseline="middle" text-anchor="middle">...</text>
-  <rect x="310" y="140" width="60" height="43" stroke="white" stroke-width="1" fill="none"/>
-  <text x="340" y="155" fill="white" alignment-baseline="middle" text-anchor="middle">State</text>
-  <text x="340" y="170" fill="white" alignment-baseline="middle" text-anchor="middle">bit 37</text>
-  <rect x="390" y="140" width="60" height="43" stroke="white" stroke-width="1" fill="none"/>
-  <text x="420" y="155" fill="white" alignment-baseline="middle" text-anchor="middle">State</text>
-  <text x="420" y="170" fill="white" alignment-baseline="middle" text-anchor="middle">bit 38</text>
-  <rect x="470" y="140" width="60" height="43" stroke="white" stroke-width="1" fill="none"/>
-  <text x="500" y="155" fill="white" alignment-baseline="middle" text-anchor="middle">State</text>
-  <text x="500" y="170" fill="white" alignment-baseline="middle" text-anchor="middle">bit 39</text>
-  <text x="560" y="160" fill="white" alignment-baseline="middle" text-anchor="middle">...</text>
-  <rect x="590" y="140" width="60" height="43" stroke="white" stroke-width="1" fill="none"/>
-  <text x="620" y="155" fill="white" alignment-baseline="middle" text-anchor="middle">State</text>
-  <text x="620" y="170" fill="white" alignment-baseline="middle" text-anchor="middle">bit 56</text>
-  <rect x="670" y="140" width="60" height="43" stroke="white" stroke-width="1" fill="none"/>
-  <text x="700" y="155" fill="white" alignment-baseline="middle" text-anchor="middle">State</text>
-  <text x="700" y="170" fill="white" alignment-baseline="middle" text-anchor="middle">bit 57</text>
-
-  <line x1="60" y1="73" x2="60" y2="90" stroke="white" stroke-width="1"/>
-  <line x1="60" y1="90" x2="57" y2="85" stroke="white" stroke-width="1"/>
-  <line x1="60" y1="90" x2="63" y2="85" stroke="white" stroke-width="1"/>
-  <rect x="40" y="90" width="40" height="30" stroke="white" stroke-width="1" fill="none"/>
-  <text x="60" y="105" fill="white" alignment-baseline="middle" text-anchor="middle">XOR</text>
-  <line x1="60" y1="120" x2="60" y2="140" stroke="white" stroke-width="1"/>
-  <line x1="60" y1="140" x2="57" y2="135" stroke="white" stroke-width="1"/>
-  <line x1="60" y1="140" x2="63" y2="135" stroke="white" stroke-width="1"/>
-</svg>
+<img src="Scrambling.svg" width="800" height="200"/>
 
 Unscrambler works the same except that new state bit simply copies incoming bit instead of combining it with bits 38 and 57.
 Interesting property about this transformation is that it's self-synchronizing - starting state for scrambler doesn't matter.

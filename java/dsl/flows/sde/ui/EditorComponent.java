@@ -371,41 +371,12 @@ public class EditorComponent extends JComponent
             setClipboardContents(concatenateContentLines(getContents(getSelectedRange())));
         }
         if (e.isControlDown() && e.getKeyCode() == KeyEvent.VK_E) {
-            StringBuilder builder = new StringBuilder("<style>\n");
-            for (int index = 0; index < PALETTE.length; index++) {
-                Color color = PALETTE[index];
-                builder.append(".s").append(index).append(" { display: inline; color: #")
-                        .append(String.format("%02x%02x%02x", color.getRed(), color.getGreen(), color.getBlue()))
-                        .append(" }\n");
-            }
-            builder.append("</style>\n<pre>");
+            StringBuilder builder = new StringBuilder();
+            builder.append("```\n");
             for (int index = 0; index < lines.length; index++) {
-                int fragmentStart = 0;
-                builder.append(String.format("%3d", index + 1)).append("  ");
-                for (Fragment fragment : highlighting.fragments[index]) {
-                    builder.append("<div class=\"s").append(fragment.color).append("\">");
-                    for (int position = fragmentStart; position < fragment.end; position++) {
-                        char ch = lines[index].charAt(position);
-                        if (ch == '&') {
-                            builder.append("&amp;");
-                        } else if (ch == '<') {
-                            builder.append("&lt;");
-                        } else if (ch == '>') {
-                            builder.append("&gt;");
-                        } else if (ch == '\"') {
-                            builder.append("&quot;");
-                        } else if (ch == '\'') {
-                            builder.append("&apos;");
-                        } else {
-                            builder.append(ch);
-                        }
-                    }
-                    builder.append("</div>");
-                    fragmentStart = fragment.end;
-                }
-                builder.append("\n");
+                builder.append(String.format("%3d", index + 1)).append("  ").append(lines[index]).append("\n");
             }
-            setClipboardContents(builder.append("</pre>").toString());
+            setClipboardContents(builder.append("```\n").toString());
         }
         if (e.isControlDown() && e.getKeyCode() == KeyEvent.VK_Z) {
             undoRedo(e.isShiftDown() ? ReplaceKind.Redo : ReplaceKind.Undo);

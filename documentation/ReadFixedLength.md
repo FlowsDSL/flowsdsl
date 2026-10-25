@@ -5,7 +5,6 @@ of what's going on in the module. Ethernet module built into Flows runtime provi
 (populated from most significant byte to least significant), number of valid bytes in ByteCount (value of 0 indicates no new
 data) and indicator whether it's end of the packet in Last field. Here's an example trace:
 
-<style>td { vertical-align: top }</style>
 <table><tr><td rowspan=5 colspan=1>Time</td><td rowspan=1 colspan=33>Receiver</td><td rowspan=5 colspan=1>CMS<br/>Read<br/>Response</td></tr>
 <tr><td rowspan=1 colspan=28>State</td><td rowspan=1 colspan=5>Inputs</td></tr>
 <tr><td rowspan=3 colspan=1>Network<br/>Read<br/>Bus<br/>Position</td><td rowspan=3 colspan=1>Read<br/>What<br/>Position</td><td rowspan=3 colspan=1>Last</td><td rowspan=1 colspan=19>Headers</td><td rowspan=3 colspan=1>Headers<br/>Are<br/>Complete</td><td rowspan=3 colspan=1>Copy</td><td rowspan=1 colspan=3>Data<br/>Word</td><td rowspan=3 colspan=1>Program<br/>Counter</td><td rowspan=1 colspan=3>Network</td><td rowspan=3 colspan=1>Header<br/>Queue<br/>Ready</td><td rowspan=3 colspan=1>Body<br/>Queue<br/>Ready</td></tr>

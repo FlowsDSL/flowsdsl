@@ -5,70 +5,65 @@ serializers, kernel driver) is taken care of by Flows runtime.
 
 ## Flows side
 
-<style>
-.s0 { display: inline; color: #c0c0c0 }
-.s1 { display: inline; color: #80c080 }
-.s2 { display: inline; color: #c08080 }
-.s3 { display: inline; color: #808080 }
-</style>
-<pre>  1  <div class="s0"></div><div class="s1">struct</div><div class="s0"> MultiplyRequest </div><div class="s2">{</div><div class="s0"> A</div><div class="s2">:</div><div class="s0"> Bit</div><div class="s2">[</div><div class="s0">32</div><div class="s2">]</div><div class="s0"></div><div class="s2">;</div><div class="s0"> B</div><div class="s2">:</div><div class="s0"> Bit</div><div class="s2">[</div><div class="s0">32</div><div class="s2">]</div><div class="s0"></div><div class="s2">;</div><div class="s0"> </div><div class="s2">}</div><div class="s0"></div>
-  2  <div class="s0"></div><div class="s1">struct</div><div class="s0"> GCDRequest </div><div class="s2">{</div><div class="s0"> A</div><div class="s2">:</div><div class="s0"> Bit</div><div class="s2">[</div><div class="s0">32</div><div class="s2">]</div><div class="s0"></div><div class="s2">;</div><div class="s0"> B</div><div class="s2">:</div><div class="s0"> Bit</div><div class="s2">[</div><div class="s0">32</div><div class="s2">]</div><div class="s0"></div><div class="s2">;</div><div class="s0"> </div><div class="s2">}</div><div class="s0"></div>
-  3  <div class="s0"></div><div class="s1">oneof</div><div class="s0"> CalculatorRequest </div><div class="s2">{</div><div class="s0"> MultiplyRequest</div><div class="s2">,</div><div class="s0"> GCDRequest </div><div class="s2">}</div><div class="s0"></div>
-  4  <div class="s0"></div><div class="s1">struct</div><div class="s0"> CalculatorResult </div><div class="s2">{</div><div class="s0"> Value</div><div class="s2">:</div><div class="s0"> Bit</div><div class="s2">[</div><div class="s0">32</div><div class="s2">]</div><div class="s0"></div><div class="s2">;</div><div class="s0"> </div><div class="s2">}</div><div class="s0"></div>
-  5  <div class="s0"></div><div class="s1">oneof</div><div class="s0"> BlankOrCalculatorResult </div><div class="s2">{</div><div class="s0"> Blank</div><div class="s2">,</div><div class="s0"> CalculatorResult </div><div class="s2">}</div><div class="s0"></div>
-  6  <div class="s0"></div>
-  7  <div class="s0"></div><div class="s1">transform</div><div class="s0"> CalculatorTransform </div><div class="s2">(</div><div class="s0">Request</div><div class="s2">:</div><div class="s0"> CalculatorRequest</div><div class="s2">,</div><div class="s0"> Response</div><div class="s2">:</div><div class="s0"> BlankOrCalculatorResult</div><div class="s2">)</div><div class="s0"> </div><div class="s2">{</div><div class="s0"></div>
-  8  <div class="s0">    </div><div class="s1">while</div><div class="s0"> </div><div class="s2">(</div><div class="s0"></div><div class="s1">true</div><div class="s0"></div><div class="s2">)</div><div class="s0"> </div><div class="s2">{</div><div class="s0"></div>
-  9  <div class="s0">        </div><div class="s1">if</div><div class="s0"> </div><div class="s2">(</div><div class="s0">RequestReader </div><div class="s1">is</div><div class="s0"> CalculatorRequest</div><div class="s2">)</div><div class="s0"> </div><div class="s2">{</div><div class="s0"></div>
- 10  <div class="s0">            RequestPop </div><div class="s2">=</div><div class="s0"> 1</div><div class="s2">;</div><div class="s0"></div>
- 11  <div class="s0">            </div><div class="s1">if</div><div class="s0"> </div><div class="s2">(</div><div class="s0">RequestReader</div><div class="s2">.</div><div class="s0">CalculatorRequest </div><div class="s1">is</div><div class="s0"> MultiplyRequest</div><div class="s2">)</div><div class="s0"> </div><div class="s2">{</div><div class="s0"></div>
- 12  <div class="s0">                Bit</div><div class="s2">[</div><div class="s0">32</div><div class="s2">]</div><div class="s0"> Product </div><div class="s2">=</div><div class="s0"> 0</div><div class="s2">;</div><div class="s0"></div>
- 13  <div class="s0">                Bit</div><div class="s2">[</div><div class="s0">32</div><div class="s2">]</div><div class="s0"> MultiplyA </div><div class="s2">=</div><div class="s0"> RequestReader</div><div class="s2">.</div><div class="s0">CalculatorRequest</div><div class="s2">.</div><div class="s0">MultiplyRequest</div><div class="s2">.</div><div class="s0">A</div><div class="s2">;</div><div class="s0"></div>
- 14  <div class="s0">                Bit</div><div class="s2">[</div><div class="s0">32</div><div class="s2">]</div><div class="s0"> MultiplyB </div><div class="s2">=</div><div class="s0"> RequestReader</div><div class="s2">.</div><div class="s0">CalculatorRequest</div><div class="s2">.</div><div class="s0">MultiplyRequest</div><div class="s2">.</div><div class="s0">B</div><div class="s2">;</div><div class="s0"></div>
- 15  <div class="s0">                </div><div class="s1">step</div><div class="s0"></div><div class="s2">;</div><div class="s0"></div>
- 16  <div class="s0">                </div><div class="s1">while</div><div class="s0"> </div><div class="s2">(</div><div class="s0">MultiplyB </div><div class="s2">!=</div><div class="s0"> 0</div><div class="s2">)</div><div class="s0"> </div><div class="s2">{</div><div class="s0"></div>
- 17  <div class="s0">                    </div><div class="s1">if</div><div class="s0"> </div><div class="s2">(</div><div class="s0">Slice</div><div class="s2">(</div><div class="s0">whole</div><div class="s2">:</div><div class="s0"> MultiplyB</div><div class="s2">,</div><div class="s0"> offsetInBits</div><div class="s2">:</div><div class="s0"> 0</div><div class="s2">,</div><div class="s0"> countInBits</div><div class="s2">:</div><div class="s0"> 1</div><div class="s2">)</div><div class="s0"> </div><div class="s2">==</div><div class="s0"> 1</div><div class="s2">)</div><div class="s0"> </div><div class="s2">{</div><div class="s0"></div>
- 18  <div class="s0">                        Product </div><div class="s2">=</div><div class="s0"> Product </div><div class="s2">+</div><div class="s0"> MultiplyA</div><div class="s2">;</div><div class="s0"></div>
- 19  <div class="s0">                    </div><div class="s2">}</div><div class="s0"></div>
- 20  <div class="s0">                    MultiplyA </div><div class="s2">=</div><div class="s0"> ShiftLeft</div><div class="s2">(</div><div class="s0">what</div><div class="s2">:</div><div class="s0"> MultiplyA</div><div class="s2">,</div><div class="s0"> howManyBits</div><div class="s2">:</div><div class="s0"> 1</div><div class="s2">)</div><div class="s0"></div><div class="s2">;</div><div class="s0"></div>
- 21  <div class="s0">                    MultiplyB </div><div class="s2">=</div><div class="s0"> ShiftRight</div><div class="s2">(</div><div class="s0">what</div><div class="s2">:</div><div class="s0"> MultiplyB</div><div class="s2">,</div><div class="s0"> howManyBits</div><div class="s2">:</div><div class="s0"> 1</div><div class="s2">)</div><div class="s0"></div><div class="s2">;</div><div class="s0"></div>
- 22  <div class="s0">                    </div><div class="s1">step</div><div class="s0"></div><div class="s2">;</div><div class="s0"></div>
- 23  <div class="s0">                </div><div class="s2">}</div><div class="s0"></div>
- 24  <div class="s0">                Response </div><div class="s2">=</div><div class="s0"> CalculatorResult</div><div class="s2">{</div><div class="s0">Value</div><div class="s2">:</div><div class="s0"> Product</div><div class="s2">}</div><div class="s0"></div><div class="s2">;</div><div class="s0"></div>
- 25  <div class="s0">            </div><div class="s2">}</div><div class="s0"> </div><div class="s1">else</div><div class="s0"> </div><div class="s2">{</div><div class="s0"></div>
- 26  <div class="s0">                </div><div class="s1">if</div><div class="s0"> </div><div class="s2">(</div><div class="s0">RequestReader</div><div class="s2">.</div><div class="s0">CalculatorRequest </div><div class="s1">is</div><div class="s0"> GCDRequest</div><div class="s2">)</div><div class="s0"> </div><div class="s2">{</div><div class="s0"></div>
- 27  <div class="s0">                    Bit</div><div class="s2">[</div><div class="s0">32</div><div class="s2">]</div><div class="s0"> GCDA </div><div class="s2">=</div><div class="s0"> RequestReader</div><div class="s2">.</div><div class="s0">CalculatorRequest</div><div class="s2">.</div><div class="s0">GCDRequest</div><div class="s2">.</div><div class="s0">A</div><div class="s2">;</div><div class="s0"></div>
- 28  <div class="s0">                    Bit</div><div class="s2">[</div><div class="s0">32</div><div class="s2">]</div><div class="s0"> GCDB </div><div class="s2">=</div><div class="s0"> RequestReader</div><div class="s2">.</div><div class="s0">CalculatorRequest</div><div class="s2">.</div><div class="s0">GCDRequest</div><div class="s2">.</div><div class="s0">B</div><div class="s2">;</div><div class="s0"></div>
- 29  <div class="s0">                    </div><div class="s1">if</div><div class="s0"> </div><div class="s2">(</div><div class="s0">GCDA </div><div class="s2">!=</div><div class="s0"> 0 </div><div class="s2">&amp;&amp;</div><div class="s0"> GCDB </div><div class="s2">!=</div><div class="s0"> 0</div><div class="s2">)</div><div class="s0"> </div><div class="s2">{</div><div class="s0"></div>
- 30  <div class="s0">                        </div><div class="s1">step</div><div class="s0"></div><div class="s2">;</div><div class="s0"></div>
- 31  <div class="s0">                        </div><div class="s1">while</div><div class="s0"> </div><div class="s2">(</div><div class="s0">GCDA </div><div class="s2">!=</div><div class="s0"> GCDB</div><div class="s2">)</div><div class="s0"> </div><div class="s2">{</div><div class="s0"></div>
- 32  <div class="s0">                            </div><div class="s1">if</div><div class="s0"> </div><div class="s2">(</div><div class="s0">GCDA </div><div class="s2">&gt;</div><div class="s0"> GCDB</div><div class="s2">)</div><div class="s0"> </div><div class="s2">{</div><div class="s0"></div>
- 33  <div class="s0">                                GCDA </div><div class="s2">=</div><div class="s0"> GCDA</div><div class="s2">-</div><div class="s0">GCDB</div><div class="s2">;</div><div class="s0"></div>
- 34  <div class="s0">                            </div><div class="s2">}</div><div class="s0"> </div><div class="s1">else</div><div class="s0"> </div><div class="s2">{</div><div class="s0"></div>
- 35  <div class="s0">                                GCDB </div><div class="s2">=</div><div class="s0"> GCDB</div><div class="s2">-</div><div class="s0">GCDA</div><div class="s2">;</div><div class="s0"></div>
- 36  <div class="s0">                            </div><div class="s2">}</div><div class="s0"></div>
- 37  <div class="s0">                            </div><div class="s1">step</div><div class="s0"></div><div class="s2">;</div><div class="s0"></div>
- 38  <div class="s0">                        </div><div class="s2">}</div><div class="s0"></div>
- 39  <div class="s0">                    </div><div class="s2">}</div><div class="s0"></div>
- 40  <div class="s0">                    Response </div><div class="s2">=</div><div class="s0"> CalculatorResult</div><div class="s2">{</div><div class="s0">Value</div><div class="s2">:</div><div class="s0"> GCDA </div><div class="s2">|</div><div class="s0"> GCDB</div><div class="s2">}</div><div class="s0"></div><div class="s2">;</div><div class="s0"></div>
- 41  <div class="s0">                </div><div class="s2">}</div><div class="s0"></div>
- 42  <div class="s0">            </div><div class="s2">}</div><div class="s0"></div>
- 43  <div class="s0">        </div><div class="s2">}</div><div class="s0"></div>
- 44  <div class="s0">        </div><div class="s1">step</div><div class="s0"></div><div class="s2">;</div><div class="s0"></div>
- 45  <div class="s0">    </div><div class="s2">}</div><div class="s0"></div>
- 46  <div class="s0"></div><div class="s2">}</div><div class="s0"></div>
- 47  <div class="s0"></div>
- 48  <div class="s0"></div><div class="s1">system</div><div class="s0"> </div><div class="s2">{</div><div class="s0"></div>
- 49  <div class="s0">    </div><div class="s1">instance</div><div class="s0"> Calculator</div><div class="s2">:</div><div class="s0"> CalculatorTransform</div><div class="s2">;</div><div class="s0"></div>
- 50  <div class="s0">    </div><div class="s1">queue</div><div class="s0"> HostMessageRouter</div><div class="s2">.</div><div class="s0">ToCalculator </div><div class="s2">-&gt;</div><div class="s0"> Calculator</div><div class="s2">.</div><div class="s0">Request</div><div class="s2">;</div><div class="s0"></div>
- 51  <div class="s0">    </div><div class="s1">wire</div><div class="s0"> Calculator</div><div class="s2">.</div><div class="s0">Response </div><div class="s2">-&gt;</div><div class="s0"> HostMessageRouter</div><div class="s2">.</div><div class="s0">FromCalculator</div><div class="s2">;</div><div class="s0"></div>
- 52  <div class="s0"></div><div class="s2">}</div><div class="s0"></div>
- 53  <div class="s0"></div>
-</pre>
+```
+  1  struct MultiplyRequest { A: Bit[32]; B: Bit[32]; }
+  2  struct GCDRequest { A: Bit[32]; B: Bit[32]; }
+  3  oneof CalculatorRequest { MultiplyRequest, GCDRequest }
+  4  struct CalculatorResult { Value: Bit[32]; }
+  5  oneof BlankOrCalculatorResult { Blank, CalculatorResult }
+  6  
+  7  transform CalculatorTransform (Request: CalculatorRequest, Response: BlankOrCalculatorResult) {
+  8      while (true) {
+  9          if (RequestReader is CalculatorRequest) {
+ 10              RequestPop = 1;
+ 11              if (RequestReader.CalculatorRequest is MultiplyRequest) {
+ 12                  Bit[32] Product = 0;
+ 13                  Bit[32] MultiplyA = RequestReader.CalculatorRequest.MultiplyRequest.A;
+ 14                  Bit[32] MultiplyB = RequestReader.CalculatorRequest.MultiplyRequest.B;
+ 15                  step;
+ 16                  while (MultiplyB != 0) {
+ 17                      if (Slice(whole: MultiplyB, offsetInBits: 0, countInBits: 1) == 1) {
+ 18                          Product = Product + MultiplyA;
+ 19                      }
+ 20                      MultiplyA = ShiftLeft(what: MultiplyA, howManyBits: 1);
+ 21                      MultiplyB = ShiftRight(what: MultiplyB, howManyBits: 1);
+ 22                      step;
+ 23                  }
+ 24                  Response = CalculatorResult{Value: Product};
+ 25              } else {
+ 26                  if (RequestReader.CalculatorRequest is GCDRequest) {
+ 27                      Bit[32] GCDA = RequestReader.CalculatorRequest.GCDRequest.A;
+ 28                      Bit[32] GCDB = RequestReader.CalculatorRequest.GCDRequest.B;
+ 29                      if (GCDA != 0 && GCDB != 0) {
+ 30                          step;
+ 31                          while (GCDA != GCDB) {
+ 32                              if (GCDA > GCDB) {
+ 33                                  GCDA = GCDA-GCDB;
+ 34                              } else {
+ 35                                  GCDB = GCDB-GCDA;
+ 36                              }
+ 37                              step;
+ 38                          }
+ 39                      }
+ 40                      Response = CalculatorResult{Value: GCDA | GCDB};
+ 41                  }
+ 42              }
+ 43          }
+ 44          step;
+ 45      }
+ 46  }
+ 47  
+ 48  system {
+ 49      instance Calculator: CalculatorTransform;
+ 50      queue HostMessageRouter.ToCalculator -> Calculator.Request;
+ 51      wire Calculator.Response -> HostMessageRouter.FromCalculator;
+ 52  }
+ 53  
+```
 
 ## C++ side
 
-<pre>
+```
 #include "fpga.h"
 
 struct PrintingListener : fpga::FpgaIO::Listener {
@@ -84,7 +79,7 @@ struct PrintingListener : fpga::FpgaIO::Listener {
 
 int main() {
     PrintingListener listener;
-    std::unique_ptr&lt;TaskQueue&gt; taskQueue = std::make_unique&lt;TaskQueue&gt;();
+    std::unique_ptr<TaskQueue> taskQueue = std::make_unique<TaskQueue>();
     fpga::FpgaIO fpgaIO("/dev/fpga_dma_device", listener, "/tmp", taskQueue.get());
     fpgaIO.SendToHostMessageRouter(fpga::StartTracing{});
     fpgaIO.SendToCalculator(fpga::GCDRequest{.A = 12300, .B = 41});
@@ -94,7 +89,7 @@ int main() {
         taskQueue->execute();
     }
 }
-</pre>
+```
 
 ## Output
 
@@ -108,7 +103,6 @@ Received result: 1643
 Program counter shows the syntactic location of the step being executed (e.g. 44:9 means line 44, position 9).
 All values other than Time are shown in hex (0x300c = 12300, 0x29 = 41, 0x66b = 1643).
 
-<style>td { vertical-align: top }</style>
 <table><tr><td rowspan=6 colspan=1>Time</td><td rowspan=1 colspan=12>Calculator</td><td rowspan=6 colspan=1>Calculator<br/>Result</td></tr>
 <tr><td rowspan=1 colspan=6>State</td><td rowspan=1 colspan=6>Inputs</td></tr>
 <tr><td rowspan=4 colspan=1>Product</td><td rowspan=4 colspan=1>MultiplyA</td><td rowspan=4 colspan=1>MultiplyB</td><td rowspan=4 colspan=1>GCDA</td><td rowspan=4 colspan=1>GCDB</td><td rowspan=4 colspan=1>Program<br/>Counter</td><td rowspan=1 colspan=6>Request<br/>Reader</td></tr>
