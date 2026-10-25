@@ -1,0 +1,52 @@
+// SPDX-License-Identifier: Apache-2.0
+// Copyright 2026 Flows author <flows.dsl@proton.me>
+
+struct SetIntervalCommand {
+    Interval: Bit[32];
+}
+
+oneof BlankOrSetIntervalCommand { Blank, SetIntervalCommand }
+
+transform PingSenderTransform (NetworkOut: Network32Word, MessageFromHost: BlankOrSetIntervalCommand) {
+    Bit[32] Counter = 0;
+    Bit[32] Interval = 32226562;
+    while (true) {
+        Counter = 0;
+        step;
+        while (Counter != Interval) {
+            Counter = Counter+1;
+            step;
+        }
+        step;
+        if (MessageFromHostReader is SetIntervalCommand) {
+            Counter = 0;
+            Interval = MessageFromHostReader.SetIntervalCommand.Interval;
+            MessageFromHostPop = 1;
+        }
+        step;
+        BlockingPush(where: NetworkOut, what: Network32Word{Data: 0x00005e00, ByteCount: 4, Last: 0});
+        BlockingPush(where: NetworkOut, what: Network32Word{Data: 0x53010000, ByteCount: 4, Last: 0});
+        BlockingPush(where: NetworkOut, what: Network32Word{Data: 0x5e005302, ByteCount: 4, Last: 0});
+        BlockingPush(where: NetworkOut, what: Network32Word{Data: 0x08004500, ByteCount: 4, Last: 0});
+        BlockingPush(where: NetworkOut, what: Network32Word{Data: 0x00320000, ByteCount: 4, Last: 0});
+        BlockingPush(where: NetworkOut, what: Network32Word{Data: 0x00004001, ByteCount: 4, Last: 0});
+        BlockingPush(where: NetworkOut, what: Network32Word{Data: 0x66640a00, ByteCount: 4, Last: 0});
+        BlockingPush(where: NetworkOut, what: Network32Word{Data: 0x00600a00, ByteCount: 4, Last: 0});
+        BlockingPush(where: NetworkOut, what: Network32Word{Data: 0x00080800, ByteCount: 4, Last: 0});
+        BlockingPush(where: NetworkOut, what: Network32Word{Data: 0x5b560001, ByteCount: 4, Last: 0});
+        BlockingPush(where: NetworkOut, what: Network32Word{Data: 0x02030405, ByteCount: 4, Last: 0});
+        BlockingPush(where: NetworkOut, what: Network32Word{Data: 0x06070809, ByteCount: 4, Last: 0});
+        BlockingPush(where: NetworkOut, what: Network32Word{Data: 0x0a0b0c0d, ByteCount: 4, Last: 0});
+        BlockingPush(where: NetworkOut, what: Network32Word{Data: 0x0e0f1011, ByteCount: 4, Last: 0});
+        BlockingPush(where: NetworkOut, what: Network32Word{Data: 0x12131415, ByteCount: 4, Last: 0});
+        BlockingPush(where: NetworkOut, what: Network32Word{Data: 0x16171819, ByteCount: 4, Last: 1});
+    }
+}
+
+system {
+    instance PingSender: PingSenderTransform;
+    /* Native module connecting to Ethernet port */
+    wire with backpressure PingSender.NetworkOut -> Ethernet.Send;
+    /* and to PCIe host message dispatcher */
+    queue HostMessageRouter.ToPingSender -> PingSender.MessageFromHost;
+}

@@ -1,0 +1,56 @@
+// SPDX-License-Identifier: Apache-2.0
+// Copyright 2026 Flows author <flows.dsl@proton.me>
+
+struct MultiplyRequest { A: Bit[32]; B: Bit[32]; }
+struct GCDRequest { A: Bit[32]; B: Bit[32]; }
+oneof CalculatorRequest { MultiplyRequest, GCDRequest }
+oneof BlankOrCalculatorRequest { Blank, CalculatorRequest }
+struct CalculatorResult { Value: Bit[32]; }
+oneof BlankOrCalculatorResult { Blank, CalculatorResult }
+
+transform CalculatorTransform (Request: BlankOrCalculatorRequest, Response: BlankOrCalculatorResult) {
+    while (true) {
+        if (RequestReader is CalculatorRequest) {
+            RequestPop = 1;
+            if (RequestReader.CalculatorRequest is MultiplyRequest) {
+                Bit[32] Product = 0;
+                Bit[32] MultiplyA = RequestReader.CalculatorRequest.MultiplyRequest.A;
+                Bit[32] MultiplyB = RequestReader.CalculatorRequest.MultiplyRequest.B;
+                step;
+                while (MultiplyB != 0) {
+                    if (Slice(whole: MultiplyB, offsetInBits: 0, countInBits: 1) == 1) {
+                        Product = Product + MultiplyA;
+                    }
+                    MultiplyA = ShiftLeft(what: MultiplyA, howManyBits: 1);
+                    MultiplyB = ShiftRight(what: MultiplyB, howManyBits: 1);
+                    step;
+                }
+                Response = CalculatorResult{Value: Product};
+            } else {
+                if (RequestReader.CalculatorRequest is GCDRequest) {
+                    Bit[32] GCDA = RequestReader.CalculatorRequest.GCDRequest.A;
+                    Bit[32] GCDB = RequestReader.CalculatorRequest.GCDRequest.B;
+                    if (GCDA != 0 && GCDB != 0) {
+                        step;
+                        while (GCDA != GCDB) {
+                            if (GCDA > GCDB) {
+                                GCDA = GCDA-GCDB;
+                            } else {
+                                GCDB = GCDB-GCDA;
+                            }
+                            step;
+                        }
+                    }
+                    Response = CalculatorResult{Value: GCDA | GCDB};
+                }
+            }
+        }
+        step;
+    }
+}
+
+system {
+    instance Calculator: CalculatorTransform;
+    queue HostMessageRouter.ToCalculator -> Calculator.Request;
+    wire Calculator.Response -> HostMessageRouter.FromCalculator;
+}

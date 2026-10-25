@@ -1,0 +1,28 @@
+Flows
+Copyright 2026 Flows author <flows.dsl@proton.me>
+
+Flows is licensed under the Apache License, Version 2.0 (see LICENSE),
+except for files whose SPDX-License-Identifier header names a different
+license.
+
+
+Generated output exception
+
+As an additional permission, files that Flows generates from your program
+may be used, modified and distributed under any terms, without the
+conditions of the Apache License. These files are:
+
+  - Types.sv, Core.sv, and the module generated for each transform
+  - fpga.h, fpga.cpp and fpgaTracing.cpp
+
+This permission also covers the fragments of Flows source that the
+generator inlines into these files (TypesPreamble.sv, CorePreamble.sv,
+FpgaIOFragmentA.h, FpgaIOFragmentB.h, FpgaIOFragment.cpp).
+
+The permission does not cover files that Flows copies into the output
+unchanged. These remain under the Apache License, Version 2.0, and their
+copyright and license notices must be retained:
+
+  Top.sv, Queue.sv, CRC.sv, ScramblerUnscrambler.sv, EthernetPCSAndMAC.sv,
+  BlockRam.sv, FlashProgrammerBridge.sv, CMSBridgeTransform.sv, Top.xdc,
+  Compile.tcl

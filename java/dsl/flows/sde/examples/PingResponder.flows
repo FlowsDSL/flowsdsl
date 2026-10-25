@@ -1,0 +1,120 @@
+// SPDX-License-Identifier: Apache-2.0
+// Copyright 2026 Flows author <flows.dsl@proton.me>
+
+/* Combined headers to read at once rather than one by one */
+struct EthernetIPAndICMP {
+    Ethernet: EthernetHeader;
+    IP: IPHeader;
+    ICMP: ICMPHeader;
+}
+
+/* Essential fields from incoming packets that are sent from receiver transform to sender transform */
+struct ResponderHeader {
+    EthernetSource: EthernetAddress;
+    EthernetDestination: EthernetAddress;
+    IPSource: IPAddress;
+    IPDestination: IPAddress;
+    IPTotalLength: Bit[16];
+    ICMPChecksum: Bit[16];
+}
+
+oneof BlankOrResponderHeader { Blank, ResponderHeader }
+
+/* Fragment of incoming packet body (data following Ethernet/IP/ICMP headers) */
+struct BodyWord {
+    Data: Bit[64];
+    ByteCount: Bit[4];
+    Last: Bit;
+}
+
+oneof BlankOrBodyWord { Blank, BodyWord }
+
+/* This block describes a stateful transform that runs continuously, taking inputs, accumulating the state over time and producing outputs.
+ * At fixed time intervals, "Network" input bus provides next word that has next 4 bytes (+ flag indicating end of the packet).
+ */
+transform PingResponderReceiver (Network: Network32Word, HeaderQueue: BlankOrResponderHeader, BodyQueue: BlankOrBodyWord) {
+    while (true) {
+        EthernetIPAndICMP Headers = EthernetIPAndICMP{};
+        Bit HeadersAreComplete = 0;
+        /* Construct incoming network packet headers from incoming 4-byte words */
+        ReadFixedLength(where: Network, what: Headers, complete: HeadersAreComplete);
+        /* If packet is shorter than required minimum headers, skip it */
+        if (!HeadersAreComplete) {
+            continue;
+        }
+        /* Check that it's ICMP echo request packet. We still need to read the entire packet but the question
+         * is whether we send a response */
+        Bit Copy = Headers.Ethernet.EtherType == ETHERTYPE_IP && Headers.IP.Version == 4 && Headers.IP.HeaderLength == 5 &&
+            Headers.IP.Protocol == IP_PROTOCOL_ICMP && Headers.IP.TotalLength >= 24 && Headers.ICMP.Type == ICMP_ECHO_REQUEST;
+        if (Copy) {
+            AssertingPush(where: HeaderQueue, what: ResponderHeader{
+                EthernetSource: Headers.Ethernet.Destination, EthernetDestination: Headers.Ethernet.Source,
+                IPSource: Headers.IP.Destination, IPDestination: Headers.IP.Source,
+                IPTotalLength: Headers.IP.TotalLength, ICMPChecksum: Headers.ICMP.ICMPChecksum });
+        }
+        /* Read rest of the packet and copy it to body queue if it's ICMP echo request packet */
+        BodyWord DataWord = BodyWord{};
+        while (true) {
+            ReadVariableLength(where: Network, what: DataWord);
+            if (Copy) {
+                AssertingPush(where: BodyQueue, what: DataWord);
+            }
+            if (DataWord.Last) {
+                break;
+            }
+        }
+        step;
+    }
+}
+
+/* This transform is responsible for driving the network port sender interface. For each request enqueued by Receiver
+ * transform, writes an echo reply: header with swapped addresses and adjusted checksums, then the original body
+ */
+transform PingResponderSender (Network: Network32Word, HeaderQueue: BlankOrResponderHeader, BodyQueue: BlankOrBodyWord) {
+    while (true) {
+        /* Check if there's entry in header queue */
+        if (HeaderQueueReader is ResponderHeader) {
+            /* If there is, copy it to local variable and pop it off the queue */
+            ResponderHeader Header = HeaderQueueReader.ResponderHeader;
+            HeaderQueuePop = 1;
+            /* Calculate checksums
+             * IP checksum is calculated from scratch
+             * 0x5501 is 0x4500 (version+header length) + 0x1000 (time to live) + 0x0001 (ICMP protocol). Identification and flags header fields are 0
+             * ICMP checksum is calculated from original (presumably correct checksum) by adjusting it for replacing
+             * echo request (8) with echo response (0) in high byte of 16-bit packet word
+             */
+            Bit[16] IPChecksum = ~InternetChecksum(0x5501, Header.IPTotalLength, Header.IPSource.Value, Header.IPDestination.Value);
+            Bit[16] ICMPChecksum = InternetChecksum(Header.ICMPChecksum, 0x800);
+            /* Start writing on the next step - checksum calculations are too slow to fit in same step as WriteFixedLength */
+            step;
+            /* Write header */
+            WriteFixedLength(where: Network, what: EthernetIPAndICMP{
+                Ethernet: EthernetHeader{Destination: Header.EthernetDestination, Source: Header.EthernetSource, EtherType: ETHERTYPE_IP},
+                IP: IPHeader{Version: 4, HeaderLength: 5, HeaderChecksum: IPChecksum, TimeToLive: 0x10, TotalLength: Header.IPTotalLength,
+                             Protocol: IP_PROTOCOL_ICMP, Source: Header.IPSource, Destination: Header.IPDestination},
+                ICMP: ICMPHeader{Type: ICMP_ECHO_RESPONSE, ICMPChecksum: ICMPChecksum}});
+            while (true) {
+                /* Request body queue should not be empty by now because we are behind Receiver by at least 10 steps that it takes to
+                 * write out headers
+                 */
+                BodyWord DataWord = BodyWord{};
+                AssertingPop(where: BodyQueue, what: DataWord);
+                WriteVariableLength(where: Network, what: DataWord);
+                if (DataWord.Last) {
+                    break;
+                }
+            }
+        }
+        step;
+    }
+}
+
+system {
+    instance Receiver: PingResponderReceiver;
+    instance Sender: PingResponderSender;
+    /* Native module connecting to Ethernet port */
+    wire Ethernet.Receive -> Receiver.Network;
+    queue Receiver.HeaderQueue -> Sender.HeaderQueue;
+    queue Receiver.BodyQueue -> Sender.BodyQueue;
+    wire with backpressure Sender.Network -> Ethernet.Send;
+}

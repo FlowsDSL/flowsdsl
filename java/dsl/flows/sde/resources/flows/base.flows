@@ -1,0 +1,59 @@
+// SPDX-License-Identifier: Apache-2.0
+// Copyright 2026 Flows author <flows.dsl@proton.me>
+
+struct IPAddress { Value: Bit[32]; }
+struct EthernetAddress { Value: Bit[48]; }
+
+struct CMSReadRequest { Address: Bit[18]; }
+oneof BlankOrCMSReadRequest { Blank, CMSReadRequest }
+struct CMSReadResponse { Value: Bit[32]; }
+oneof BlankOrCMSReadResponse { Blank, CMSReadResponse }
+
+struct Network32Word {
+    Data: Bit[32];
+    ByteCount: Bit[3];
+    Last: Bit;
+}
+
+const ETHERTYPE_IP = 0x800;
+
+struct EthernetHeader {
+    Destination: EthernetAddress;
+    Source: EthernetAddress;
+    EtherType: Bit[16];
+}
+
+const ICMP_ECHO_REQUEST = 8;
+const ICMP_ECHO_RESPONSE = 0;
+
+struct ICMPHeader {
+    Type: Bit[8];
+    Code: Bit[8];
+    ICMPChecksum: Bit[16];
+}
+
+const IP_PROTOCOL_ICMP = 1;
+
+struct IPHeader {
+    Version: Bit[4];
+    HeaderLength: Bit[4];
+    DSCP: Bit[6];
+    ECN: Bit[2];
+    TotalLength: Bit[16];
+    Identification: Bit[16];
+    Flags: Bit[3];
+    FragmentOffset: Bit[13];
+    TimeToLive: Bit[8];
+    Protocol: Bit[8];
+    HeaderChecksum: Bit[16];
+    Source: IPAddress;
+    Destination: IPAddress;
+}
+
+struct StartTracing {
+}
+
+struct RawUnscrambledEthernetWord {
+    Header: Bit[2];
+    Data: Bit[64];
+}
