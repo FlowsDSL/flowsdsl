@@ -3,11 +3,17 @@
 The usual learning path for FPGA programming starts with logic gates, flip-flops and timing, then a hardware description language, and reaches a working application
 after months. This guide starts with a working ping responder, written in familiar C-like notation, and introduces each concept when the trace shows why it matters.
 
-You don't need to learn about setup/hold times, clock domains and timing violations to get started. You'll meet them when they become critical and learn the same
-fundamentals as experienced electrical engineering professionals, but you don't need them right away.
+You don't need to learn about setup/hold times, clock domains and timing violations **to get started**. Same fundamentals, different order: you'll meet them when
+they become critical, and master them gradually.
 
-Flows, a C-like high-level language, and its tooling exist to make this path possible. The ping responder below, written in Flows, demonstrates the approach. It is
-compiled to a hardware flash image (known as bitfile) in a single build step.
+Flows, a C-like high-level language, and its tooling exist to make this path possible. You decide what happens in each step, and the compiler works out the
+hardware details that follow:
+* a transform is ordinary sequential code with loops, branches and early exits; the `step` keyword marks where one step ends and the next begins
+* within a step, you can assign a variable several times, just like in software ([see how](documentation/Compiler.md))
+* transforms run in parallel, connected by queues in a `system` block; a queue makes the sender wait when the receiver isn't ready
+* the hardware streams every transform's state to the host, so you debug against your source, step by step, on the board
+
+The ping responder below, written in Flows, demonstrates the approach. It is compiled to a hardware flash image (known as bitfile) in a single build step.
 
 One of the key components of this approach is transparency - generated FPGA bitfile collects traces of internal state of your program in hardware and sends them to
 the host CPU. You can see what FPGA did on every step, in terms of your source code (line numbers, transforms, variables). It is a part of the hardware program from
@@ -182,8 +188,6 @@ after the ICMP type byte arrives, which is the first moment the program knows it
 the request is still being received. The gap in data sent is caused by Ethernet interface not being ready to accept more
 data (counterpart of receive gap explained on [this page](documentation/ReadFixedLength.md)).
 
-<details>
-<summary>Trace of concurrent execution</summary>
 <table><tr><td rowspan=4 colspan=1>Time</td><td rowspan=1 colspan=1>Sender</td><td rowspan=1 colspan=3>Ethernet</td><td rowspan=1 colspan=3>Receiver</td></tr>
 <tr><td rowspan=1 colspan=1>Inputs</td><td rowspan=3 colspan=1>Data</td><td rowspan=3 colspan=1>Byte<br/>Count</td><td rowspan=3 colspan=1>Last</td><td rowspan=1 colspan=3>Inputs</td></tr>
 <tr><td rowspan=2 colspan=1>Network<br/>Ready</td><td rowspan=1 colspan=3>Network</td></tr>
@@ -231,7 +235,6 @@ data (counterpart of receive gap explained on [this page](documentation/ReadFixe
 <tr><td><code>+ 1</code></td><td><code>0</code></td><td><code>00000000</code></td><td><code>0</code></td><td><code>0</code></td><td></td><td></td><td></td></tr>
 <tr><td><code>+ 1</code></td><td><code>1</code></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
 </table>
-</details>
 
 ## Where next?
 
