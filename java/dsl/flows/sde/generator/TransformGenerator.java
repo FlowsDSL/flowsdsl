@@ -294,7 +294,7 @@ public class TransformGenerator {
                 StringBuilder merged = new StringBuilder();
                 for (StatementStep region : transform.regions) {
                     addToMerged(merged, region, printBinaryDecisionTree(module, region, "next", variableOrPort,
-                            region.variableNextState.get(variableOrPort), compilationElements));
+                            region.nextStateByVariable.get(variableOrPort), compilationElements));
                 }
                 mergedNextValues.put(variableOrPort, merged.toString());
             }
@@ -624,14 +624,14 @@ public class TransformGenerator {
                 index -> type + " " + printer.getNodeName(index) + ";");
         printForRootAndNodesWithMultipleReferences(module, printer,
                 index -> "assign " + printer.getNodeName(index) + " = " + printer.getSubtree(index) + ";");
-        return printer.getSubtreeBranch(binaryDecisionTreeAndVariableTerminals.tree().getRoot());
+        return printer.getSubtreeBranch(binaryDecisionTreeAndVariableTerminals.tree().root());
     }
 
     private static void printForRootAndNodesWithMultipleReferences(PrintStream module,
                                                                    BinaryDecisionTreePrinter printer,
-                                                                   IntFunction assignLambda) {
+                                                                   IntFunction<String> assignLambda) {
         for (int index = 0; index < printer.references.length; index++) {
-            if (index == printer.tree.getRoot() || printer.references[index] > 1) {
+            if (index == printer.tree.root() || printer.references[index] > 1) {
                 module.println(assignLambda.apply(index));
             }
         }

@@ -3,7 +3,9 @@
 
 package dsl.flows.sde.models.expressions;
 
-import dsl.flows.sde.SourceFilenameAndLocationRange;
+import dsl.flows.sde.parser.SourceFilenameAndLocationRange;
+
+import java.util.function.Consumer;
 
 public class ExpressionUnaryOperator extends Expression {
     public enum Kind {BitwiseNot, LogicalNot}
@@ -15,5 +17,10 @@ public class ExpressionUnaryOperator extends Expression {
         super(locationRange, id);
         this.kind = kind;
         this.sub = sub;
+    }
+
+    @Override
+    public void forEachChild(Consumer<Expression> consumer) {
+        consumer.accept(sub);
     }
 }

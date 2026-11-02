@@ -3,7 +3,7 @@
 
 package dsl.flows.sde.models.types;
 
-import dsl.flows.sde.SourceFilenameAndLocationRange;
+import dsl.flows.sde.parser.SourceFilenameAndLocationRange;
 
 import java.util.Comparator;
 

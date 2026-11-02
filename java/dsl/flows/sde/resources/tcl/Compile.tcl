@@ -109,10 +109,54 @@ write_checkpoint -force routed.dcp
 phys_opt_design
 report_drc
 write_checkpoint -force implemented.dcp
-set failing_paths [get_timing_paths -nworst 1 -filter {SLACK < 0}]
+set failing_paths [get_timing_paths -max_paths 1 -filter {SLACK < 0}]
 if {[llength $failing_paths] > 0} {
     foreach path $failing_paths {
-        puts [format {#FailedTiming %s} [get_nets -of $path]]
+        puts [format {#FailedTimingStart %s %s %s} \
+            [get_property SLACK $path] \
+            [get_property REQUIREMENT $path] \
+            [get_property DATAPATH_DELAY $path]]
+        set pathPins [get_pins -of $path]
+        set previous ""
+        foreach pin $pathPins {
+            set cell [get_cells -of $pin]
+            if {$cell eq $previous} {
+                continue
+            }
+            set previous $cell
+            set type [get_property REF_NAME $cell]
+            puts [format {#PathCell %s %s} $type $cell]
+            if {[string match LUT* $type]} {
+                puts [format {#TruthTable %s} [get_property INIT $cell]]
+                foreach input [get_pins -of $cell -filter {DIRECTION == IN}] {
+                    set net [get_nets -of $input]
+                    set netType [get_property TYPE $net]
+                    if {$netType eq "GROUND" || $netType eq "POWER"} {
+                        set driverType Constant
+                        set driverName $netType
+                    } else {
+                        set driverPin [get_pins -quiet -of $net -filter {DIRECTION == OUT && IS_LEAF}]
+                        if {[llength $driverPin] == 0} {
+                            set driverPin [get_pins -quiet -of $net -filter {DIRECTION == OUT}]
+                        }
+                        if {[llength $driverPin] == 0} {
+                            set driverType Unknown
+                            set driverName Unknown
+                        } else {
+                            set driverCell [get_cells -of [lindex $driverPin 0]]
+                            set driverType [get_property REF_NAME $driverCell]
+                            set driverName $driverCell
+                        }
+                    }
+                    puts [format {#Input %s %s %s%s} \
+                        [get_property REF_PIN_NAME $input] \
+                        $driverType \
+                        $driverName \
+                        [expr {[lsearch -exact $pathPins $input] >= 0 ? " OnPath" : ""}]]
+                }
+            }
+        }
+        puts {#FailedTimingEnd}
     }
     exit
 }

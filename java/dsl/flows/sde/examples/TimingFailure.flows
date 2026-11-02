@@ -1,0 +1,20 @@
+// SPDX-License-Identifier: Apache-2.0
+// Copyright 2026 Flows author <flows.dsl@proton.me>
+
+transform TimingFailure () {
+  Bit[24] Multiplied = 0x234567;
+  Bit[16] P1 = 1;
+  Bit[16] P2 = 3;
+  while (true) {
+    step;
+    Multiplied = Multiplied * P1;
+    Multiplied = Multiplied * P2;
+    step;
+    P1 = P1 + 2;
+    P2 = P2 + 2;
+  }
+}
+
+system {
+  instance Test: TimingFailure;
+}

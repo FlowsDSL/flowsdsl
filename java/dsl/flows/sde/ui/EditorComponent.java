@@ -3,9 +3,9 @@
 
 package dsl.flows.sde.ui;
 
-import dsl.flows.sde.SourceFilenameAndLocationRange;
-import dsl.flows.sde.SourceLocation;
-import dsl.flows.sde.SourceLocationRange;
+import dsl.flows.sde.parser.SourceFilenameAndLocationRange;
+import dsl.flows.sde.parser.SourceLocation;
+import dsl.flows.sde.parser.SourceLocationRange;
 import dsl.flows.sde.utility.LineSplitter;
 
 import javax.swing.*;
@@ -54,6 +54,7 @@ public class EditorComponent extends JComponent
     final Consumer<EditorComponent> modificationStatusChangeListener;
     String[] lines;
     Highlighting highlighting;
+    SourceGraphEdge[] sourceGraph;
     FontRenderContext fontRenderContext;
     SourceLocation anchor = null, cursor = new SourceLocation(0, 0);
     Timer fragmentRegenerationTimer;
@@ -80,6 +81,7 @@ public class EditorComponent extends JComponent
             throw new RuntimeException(exception);
         }
         this.highlighting = highlightingFunction.apply(lines);
+        sourceGraph = SourceGraphEdge.EMPTY_ARRAY;
         setFont(new Font("Noto Mono", Font.PLAIN, 12));
         setFocusable(true);
         addKeyListener(this);
@@ -134,6 +136,27 @@ public class EditorComponent extends JComponent
                     IntRange positionRange = getPositionRange(underline.range, index);
                     g2d.drawLine((int) (letterWidth * positionRange.start), underliningY,
                             (int) (letterWidth * positionRange.end), underliningY);
+                }
+            }
+        }
+        g.setColor(Color.RED);
+        g2d.setStroke(new BasicStroke(1));
+        for (SourceGraphEdge edge : sourceGraph) {
+            double x1 = (edge.source().start.position() + edge.source().end.position()) * letterWidth / 2;
+            double y1 = (edge.source().start.line() + 0.5) * height;
+            double x2 = (edge.destination().start.position() + edge.destination().end.position()) * letterWidth / 2;
+            double y2 = (edge.destination().start.line() + 0.5) * height;
+            double d = Math.sqrt((x1 - x2) * (x1 - x2) + (y1 - y2) * (y1 - y2));
+            if (d >= 1) {
+                Graphics2D g2d2 = (Graphics2D) g.create();
+                try {
+                    g2d2.drawLine((int) x1, (int) y1, (int) x2, (int) y2);
+                    g2d2.translate(x2, y2);
+                    g2d2.rotate(Math.atan2(y2 - y1, x2 - x1));
+                    g2d2.drawLine(0, 0, -7, -3);
+                    g2d2.drawLine(0, 0, -7, 3);
+                } finally {
+                    g2d2.dispose();
                 }
             }
         }
@@ -484,6 +507,7 @@ public class EditorComponent extends JComponent
                 lines.length - range.end.line() - 1);
         lines = newLineArray;
         highlighting = null;
+        sourceGraph = SourceGraphEdge.EMPTY_ARRAY;
         cursor = new SourceLocation(range.start.line() + replacement.length - 1,
                 replacement.length == 1 ? (range.start.position() + replacement[0].length()) :
                         replacement[replacement.length - 1].length());
@@ -507,6 +531,11 @@ public class EditorComponent extends JComponent
         repaint();
         scheduleFragmentRegeneration();
         lastTypingOperation = replaceKind == ReplaceKind.Typing ? undoList.getLast() : null;
+    }
+
+    void setSourceGraph(SourceGraphEdge[] sourceGraph) {
+        this.sourceGraph = sourceGraph;
+        repaint();
     }
 
     private boolean isEditingDisabled() {

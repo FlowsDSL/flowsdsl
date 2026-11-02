@@ -3,7 +3,7 @@
 
 package dsl.flows.sde.models.expressions;
 
-import dsl.flows.sde.SourceFilenameAndLocationRange;
+import dsl.flows.sde.parser.SourceFilenameAndLocationRange;
 
 public record FieldOrParameter(SourceFilenameAndLocationRange keyLocationRange, Expression expression) {
 }

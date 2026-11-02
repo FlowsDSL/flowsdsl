@@ -3,7 +3,7 @@
 
 package dsl.flows.sde.compiler;
 
-import dsl.flows.sde.SourceFilenameAndLocationRange;
+import dsl.flows.sde.parser.SourceFilenameAndLocationRange;
 import dsl.flows.sde.models.*;
 import dsl.flows.sde.models.expressions.*;
 import dsl.flows.sde.models.statements.*;
@@ -290,15 +290,6 @@ class NameAndTypeResolver {
                                     cast.locationRange);
                         }
                     }
-                    case "ShiftLeft", "ShiftRight" -> {
-                        FieldOrParameter whole = cast.namedParameters.get("what");
-                        FieldOrParameter offsetInBits = cast.namedParameters.get("howManyBits");
-                        if (cast.positionalParameters.length != 0 || whole == null || offsetInBits == null) {
-                            compilationErrorList.addError(cast.name +
-                                            " function requires no positional parameters and two named parameters: 'what' and 'howManyBits'",
-                                    cast.locationRange);
-                        }
-                    }
                     case "Max", "Min" -> resolveMaxMinInternetChecksum(cast, false);
                     case "InternetChecksum" -> resolveMaxMinInternetChecksum(cast, true);
                     default ->
@@ -359,6 +350,7 @@ class NameAndTypeResolver {
                         case IntegerSum:
                         case IntegerDifference:
                         case BitwiseOr:
+                        case BitwiseXOr:
                             if (cast.a.resolvedTypeReference.resolvedType instanceof BitType &&
                                     cast.a.resolvedTypeReference.arraySize != null &&
                                     cast.b.resolvedTypeReference.resolvedType instanceof BitType &&
@@ -366,7 +358,7 @@ class NameAndTypeResolver {
                                 cast.resolvedTypeReference = new TypeReference(null, "Bit",
                                         compilationElements.BIT_TYPE, Math.max(cast.a.resolvedTypeReference.arraySize,
                                         cast.b.resolvedTypeReference.arraySize) +
-                                        (cast.kind == ExpressionBinaryOperator.Kind.BitwiseOr ? 0 : 1));
+                                        (cast.kind == ExpressionBinaryOperator.Kind.BitwiseOr || cast.kind == ExpressionBinaryOperator.Kind.BitwiseXOr ? 0 : 1));
                             } else {
                                 compilationErrorList.addError(cast.kind + " operator requires two Bit arrays",
                                         cast.locationRange);

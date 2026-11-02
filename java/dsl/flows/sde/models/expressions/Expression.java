@@ -3,8 +3,10 @@
 
 package dsl.flows.sde.models.expressions;
 
-import dsl.flows.sde.SourceFilenameAndLocationRange;
+import dsl.flows.sde.parser.SourceFilenameAndLocationRange;
 import dsl.flows.sde.models.types.TypeReference;
+
+import java.util.function.Consumer;
 
 public abstract class Expression {
     public static final Expression[] EMPTY_ARRAY = new Expression[0];
@@ -17,4 +19,6 @@ public abstract class Expression {
         this.locationRange = locationRange;
         this.id = id;
     }
+
+    public abstract void forEachChild(Consumer<Expression> consumer);
 }

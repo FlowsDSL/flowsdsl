@@ -14,11 +14,11 @@ public class RegionMarker {
     final CompilationErrorList compilationErrorList;
     final boolean[] visiting;
     final boolean[] inRegion;
-    final LinkedList<StatementStep> allTerminations;
+    final LinkedList<StatementStep.TerminatingRegionAndVersion> allTerminations;
     boolean foundCycle;
 
     public RegionMarker(CompilationErrorList compilationErrorList, boolean[] visiting, boolean[] inRegion,
-                        LinkedList<StatementStep> allTerminations) {
+                        LinkedList<StatementStep.TerminatingRegionAndVersion> allTerminations) {
         this.compilationErrorList = compilationErrorList;
         this.visiting = visiting;
         this.inRegion = inRegion;
@@ -35,7 +35,7 @@ public class RegionMarker {
         if (!inRegion[node.id]) {
             inRegion[node.id] = true;
             switch (node) {
-                case StatementStep cast -> allTerminations.add(cast);
+                case StatementStep cast -> allTerminations.add(new StatementStep.TerminatingRegionAndVersion(cast));
                 case StatementIfWhile cast -> {
                     markRegionAndCollectTerminations(cast.thenSuccessor);
                     if (cast.elseSuccessor != null) {

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright 2026 Flows author <flows.dsl@proton.me>
 
-package dsl.flows.sde;
+package dsl.flows.sde.parser;
 
 import dsl.flows.sde.models.*;
 import dsl.flows.sde.models.expressions.*;
@@ -10,7 +10,9 @@ import dsl.flows.sde.models.types.OneOfType;
 import dsl.flows.sde.models.types.StructType;
 import dsl.flows.sde.models.types.TypeReference;
 
+import java.util.EnumMap;
 import java.util.LinkedList;
+import java.util.Map;
 import java.util.TreeMap;
 
 public class FlowsParser {
@@ -45,10 +47,10 @@ public class FlowsParser {
     public static class TokenPunctuation extends Token {
         public enum Kind {
             OpeningCurlyBracket(1), OpeningSquareBracket(1), OpeningRoundBracket(1), OpeningAngularBracket(1),
-            ClosingSquareBracket(1), ClosingCurlyBracket(1), ClosingRoundBracket(1), ClosingAngularBracket(1),
-            Semicolon(1), Colon(1), Comma(1), Dot(1), Arrow(2), Dash(1), Assignment(1), ComparisonEquals(2), Plus(1),
-            Star(1), DoubleAmpersand(2), Pipe(1), DoublePipe(2), LessOrEqual(2), MoreOrEqual(2), Exclamation(1),
-            NotEqual(2), Slash(1), Tilde(1);
+            DoubleOpeningAngularBracket(2), ClosingSquareBracket(1), ClosingCurlyBracket(1), ClosingRoundBracket(1),
+            ClosingAngularBracket(1), DoubleClosingAngularBracket(2), Semicolon(1), Colon(1), Comma(1), Dot(1),
+            Arrow(2), Dash(1), Assignment(1), ComparisonEquals(2), Plus(1), Star(1), DoubleAmpersand(2), Pipe(1),
+            DoublePipe(2), LessOrEqual(2), MoreOrEqual(2), Exclamation(1), NotEqual(2), Slash(1), Tilde(1), Hat(1);
 
             public final int length;
 
@@ -91,6 +93,35 @@ public class FlowsParser {
             this.value = value;
         }
     }
+
+    interface BinaryOperatorLevel {
+        Expression parse(IdGenerator idGenerator, TokenName nameToConsume) throws ParseException;
+    }
+
+    private static final EnumMap<TokenPunctuation.Kind, ExpressionBinaryOperator.Kind> OPERATORS_PRECEDENCE_7 = new EnumMap<>(
+            Map.ofEntries(Map.entry(TokenPunctuation.Kind.DoublePipe, ExpressionBinaryOperator.Kind.BooleanOr),
+                    Map.entry(TokenPunctuation.Kind.Pipe, ExpressionBinaryOperator.Kind.BitwiseOr),
+                    Map.entry(TokenPunctuation.Kind.Hat, ExpressionBinaryOperator.Kind.BitwiseXOr)));
+    private static final EnumMap<TokenPunctuation.Kind, ExpressionBinaryOperator.Kind> OPERATORS_PRECEDENCE_6 = new EnumMap<>(
+            Map.of(TokenPunctuation.Kind.DoubleAmpersand, ExpressionBinaryOperator.Kind.BooleanAnd));
+    private static final EnumMap<TokenPunctuation.Kind, ExpressionBinaryOperator.Kind> OPERATORS_PRECEDENCE_5 = new EnumMap<>(
+            Map.ofEntries(Map.entry(TokenPunctuation.Kind.ComparisonEquals, ExpressionBinaryOperator.Kind.Equals),
+                    Map.entry(TokenPunctuation.Kind.NotEqual, ExpressionBinaryOperator.Kind.NotEquals),
+                    Map.entry(TokenPunctuation.Kind.OpeningAngularBracket, ExpressionBinaryOperator.Kind.Less),
+                    Map.entry(TokenPunctuation.Kind.ClosingAngularBracket, ExpressionBinaryOperator.Kind.More),
+                    Map.entry(TokenPunctuation.Kind.LessOrEqual, ExpressionBinaryOperator.Kind.LessOrEqual),
+                    Map.entry(TokenPunctuation.Kind.MoreOrEqual, ExpressionBinaryOperator.Kind.MoreOrEqual)));
+    private static final EnumMap<TokenPunctuation.Kind, ExpressionBinaryOperator.Kind> OPERATORS_PRECEDENCE_4 = new EnumMap<>(
+            Map.ofEntries(Map.entry(TokenPunctuation.Kind.DoubleOpeningAngularBracket,
+                            ExpressionBinaryOperator.Kind.BitwiseShiftLeft),
+                    Map.entry(TokenPunctuation.Kind.DoubleClosingAngularBracket,
+                            ExpressionBinaryOperator.Kind.BitwiseShiftRight)));
+    private static final EnumMap<TokenPunctuation.Kind, ExpressionBinaryOperator.Kind> OPERATORS_PRECEDENCE_3 = new EnumMap<>(
+            Map.ofEntries(Map.entry(TokenPunctuation.Kind.Plus, ExpressionBinaryOperator.Kind.IntegerSum),
+                    Map.entry(TokenPunctuation.Kind.Dash, ExpressionBinaryOperator.Kind.IntegerDifference)));
+    private static final EnumMap<TokenPunctuation.Kind, ExpressionBinaryOperator.Kind> OPERATORS_PRECEDENCE_2 = new EnumMap<>(
+            Map.of(TokenPunctuation.Kind.Star, ExpressionBinaryOperator.Kind.IntegerProduct));
+
 
     private final String filename;
     private final String[] input;
@@ -188,15 +219,29 @@ public class FlowsParser {
                 case ')':
                     return new TokenPunctuation(sourceLocation, TokenPunctuation.Kind.ClosingRoundBracket);
                 case '<':
-                    if (position < inputAtLine.length() && inputAtLine.charAt(position) == '=') {
-                        position++;
-                        return new TokenPunctuation(sourceLocation, TokenPunctuation.Kind.LessOrEqual);
+                    if (position < inputAtLine.length()) {
+                        if (inputAtLine.charAt(position) == '=') {
+                            position++;
+                            return new TokenPunctuation(sourceLocation, TokenPunctuation.Kind.LessOrEqual);
+                        }
+                        if (inputAtLine.charAt(position) == '<') {
+                            position++;
+                            return new TokenPunctuation(sourceLocation,
+                                    TokenPunctuation.Kind.DoubleOpeningAngularBracket);
+                        }
                     }
                     return new TokenPunctuation(sourceLocation, TokenPunctuation.Kind.OpeningAngularBracket);
                 case '>':
-                    if (position < inputAtLine.length() && inputAtLine.charAt(position) == '=') {
-                        position++;
-                        return new TokenPunctuation(sourceLocation, TokenPunctuation.Kind.MoreOrEqual);
+                    if (position < inputAtLine.length()) {
+                        if (inputAtLine.charAt(position) == '=') {
+                            position++;
+                            return new TokenPunctuation(sourceLocation, TokenPunctuation.Kind.MoreOrEqual);
+                        }
+                        if (inputAtLine.charAt(position) == '>') {
+                            position++;
+                            return new TokenPunctuation(sourceLocation,
+                                    TokenPunctuation.Kind.DoubleClosingAngularBracket);
+                        }
                     }
                     return new TokenPunctuation(sourceLocation, TokenPunctuation.Kind.ClosingAngularBracket);
                 case '-':
@@ -217,6 +262,8 @@ public class FlowsParser {
                         return new TokenPunctuation(sourceLocation, TokenPunctuation.Kind.DoublePipe);
                     }
                     return new TokenPunctuation(sourceLocation, TokenPunctuation.Kind.Pipe);
+                case '^':
+                    return new TokenPunctuation(sourceLocation, TokenPunctuation.Kind.Hat);
                 case '*':
                     return new TokenPunctuation(sourceLocation, TokenPunctuation.Kind.Star);
                 case '+':
@@ -348,49 +395,51 @@ public class FlowsParser {
                 arraySize);
     }
 
-    private Expression parseExpression(IdGenerator idGenerator, TokenName nameToConsume) throws ParseException {
-        SourceLocation start = nextToken.sourceLocation;
-        Expression result = parseExpression5(idGenerator, nameToConsume);
-        while (nextToken instanceof TokenPunctuation cast) {
-            ExpressionBinaryOperator.Kind kind;
-            if (cast.kind == TokenPunctuation.Kind.DoublePipe) {
-                kind = ExpressionBinaryOperator.Kind.BooleanOr;
-            } else if (cast.kind == TokenPunctuation.Kind.Pipe) {
-                kind = ExpressionBinaryOperator.Kind.BitwiseOr;
-            } else {
-                break;
+    private Expression parseSimpleBinaryOperationLink(IdGenerator idGenerator, SourceLocation start,
+                                                      EnumMap<TokenPunctuation.Kind, ExpressionBinaryOperator.Kind> map,
+                                                      BinaryOperatorLevel next, Expression result)
+            throws ParseException {
+        if (nextToken instanceof TokenPunctuation cast) {
+            ExpressionBinaryOperator.Kind kind = map.get(cast.kind);
+            if (kind != null) {
+                consumeNextToken();
+                Expression b = next.parse(idGenerator, null);
+                return new ExpressionBinaryOperator(
+                        new SourceFilenameAndLocationRange(filename, start, lastTokenEndLocation), kind, result, b,
+                        idGenerator.generateId());
             }
-            consumeNextToken();
-            Expression b = parseExpression5(idGenerator, null);
-            result = new ExpressionBinaryOperator(
-                    new SourceFilenameAndLocationRange(filename, start, lastTokenEndLocation), kind, result, b,
-                    idGenerator.generateId());
         }
-        return result;
+        return null;
+    }
+
+    private Expression parseSimpleBinaryOperatorChain(IdGenerator idGenerator, TokenName nameToConsume,
+                                                      EnumMap<TokenPunctuation.Kind, ExpressionBinaryOperator.Kind> map,
+                                                      BinaryOperatorLevel next)
+            throws ParseException {
+        SourceLocation start = nextToken.sourceLocation;
+        Expression result = next.parse(idGenerator, nameToConsume);
+        while (true) {
+            Expression newResult = parseSimpleBinaryOperationLink(idGenerator, start, map, next, result);
+            if (newResult == null) {
+                return result;
+            }
+            result = newResult;
+        }
+    }
+
+    private Expression parseExpression7(IdGenerator idGenerator, TokenName nameToConsume) throws ParseException {
+        return parseSimpleBinaryOperatorChain(idGenerator, nameToConsume, OPERATORS_PRECEDENCE_7,
+                this::parseExpression6);
+    }
+
+    private Expression parseExpression6(IdGenerator idGenerator, TokenName nameToConsume) throws ParseException {
+        return parseSimpleBinaryOperatorChain(idGenerator, nameToConsume, OPERATORS_PRECEDENCE_6,
+                this::parseExpression5);
     }
 
     private Expression parseExpression5(IdGenerator idGenerator, TokenName nameToConsume) throws ParseException {
         SourceLocation start = nextToken.sourceLocation;
         Expression result = parseExpression4(idGenerator, nameToConsume);
-        while (nextToken instanceof TokenPunctuation cast) {
-            ExpressionBinaryOperator.Kind kind;
-            if (cast.kind == TokenPunctuation.Kind.DoubleAmpersand) {
-                kind = ExpressionBinaryOperator.Kind.BooleanAnd;
-            } else {
-                break;
-            }
-            consumeNextToken();
-            Expression b = parseExpression4(idGenerator, null);
-            result = new ExpressionBinaryOperator(
-                    new SourceFilenameAndLocationRange(filename, start, lastTokenEndLocation), kind, result, b,
-                    idGenerator.generateId());
-        }
-        return result;
-    }
-
-    private Expression parseExpression4(IdGenerator idGenerator, TokenName nameToConsume) throws ParseException {
-        SourceLocation start = nextToken.sourceLocation;
-        Expression result = parseExpression3(idGenerator, nameToConsume);
         while (true) {
             if (nextToken instanceof TokenKeyword keywordCast && keywordCast.kind == TokenKeyword.Kind.Is) {
                 consumeNextToken();
@@ -399,72 +448,27 @@ public class FlowsParser {
                         result, checkedType, idGenerator.generateId());
                 continue;
             }
-            if (!(nextToken instanceof TokenPunctuation cast)) {
-                break;
+            Expression newResult = parseSimpleBinaryOperationLink(idGenerator, start, OPERATORS_PRECEDENCE_5, this::parseExpression4, result);
+            if (newResult == null) {
+                return result;
             }
-            ExpressionBinaryOperator.Kind kind;
-            if (cast.kind == TokenPunctuation.Kind.ComparisonEquals) {
-                kind = ExpressionBinaryOperator.Kind.Equals;
-            } else if (cast.kind == TokenPunctuation.Kind.NotEqual) {
-                kind = ExpressionBinaryOperator.Kind.NotEquals;
-            } else if (cast.kind == TokenPunctuation.Kind.OpeningAngularBracket) {
-                kind = ExpressionBinaryOperator.Kind.Less;
-            } else if (cast.kind == TokenPunctuation.Kind.ClosingAngularBracket) {
-                kind = ExpressionBinaryOperator.Kind.More;
-            } else if (cast.kind == TokenPunctuation.Kind.LessOrEqual) {
-                kind = ExpressionBinaryOperator.Kind.LessOrEqual;
-            } else if (cast.kind == TokenPunctuation.Kind.MoreOrEqual) {
-                kind = ExpressionBinaryOperator.Kind.MoreOrEqual;
-            } else {
-                break;
-            }
-            consumeNextToken();
-            Expression b = parseExpression3(idGenerator, null);
-            result = new ExpressionBinaryOperator(
-                    new SourceFilenameAndLocationRange(filename, start, lastTokenEndLocation), kind, result, b,
-                    idGenerator.generateId());
+            result = newResult;
         }
-        return result;
+    }
+
+    private Expression parseExpression4(IdGenerator idGenerator, TokenName nameToConsume) throws ParseException {
+        return parseSimpleBinaryOperatorChain(idGenerator, nameToConsume, OPERATORS_PRECEDENCE_4,
+                this::parseExpression3);
     }
 
     private Expression parseExpression3(IdGenerator idGenerator, TokenName nameToConsume) throws ParseException {
-        SourceLocation start = nextToken.sourceLocation;
-        Expression result = parseExpression2(idGenerator, nameToConsume);
-        while (nextToken instanceof TokenPunctuation cast) {
-            ExpressionBinaryOperator.Kind kind;
-            if (cast.kind == TokenPunctuation.Kind.Plus) {
-                kind = ExpressionBinaryOperator.Kind.IntegerSum;
-            } else if (cast.kind == TokenPunctuation.Kind.Dash) {
-                kind = ExpressionBinaryOperator.Kind.IntegerDifference;
-            } else {
-                break;
-            }
-            consumeNextToken();
-            Expression b = parseExpression2(idGenerator, null);
-            result = new ExpressionBinaryOperator(
-                    new SourceFilenameAndLocationRange(filename, start, lastTokenEndLocation), kind, result, b,
-                    idGenerator.generateId());
-        }
-        return result;
+        return parseSimpleBinaryOperatorChain(idGenerator, nameToConsume, OPERATORS_PRECEDENCE_3,
+                this::parseExpression2);
     }
 
     private Expression parseExpression2(IdGenerator idGenerator, TokenName nameToConsume) throws ParseException {
-        SourceLocation start = nextToken.sourceLocation;
-        Expression result = parseExpression1(idGenerator, nameToConsume);
-        while (nextToken instanceof TokenPunctuation cast) {
-            ExpressionBinaryOperator.Kind kind;
-            if (cast.kind == TokenPunctuation.Kind.Star) {
-                kind = ExpressionBinaryOperator.Kind.IntegerProduct;
-            } else {
-                break;
-            }
-            consumeNextToken();
-            Expression b = parseExpression1(idGenerator, null);
-            result = new ExpressionBinaryOperator(
-                    new SourceFilenameAndLocationRange(filename, start, lastTokenEndLocation), kind, result, b,
-                    idGenerator.generateId());
-        }
-        return result;
+        return parseSimpleBinaryOperatorChain(idGenerator, nameToConsume, OPERATORS_PRECEDENCE_2,
+                this::parseExpression1);
     }
 
     private Expression parseExpression1(IdGenerator idGenerator, TokenName nameToConsume) throws ParseException {
@@ -525,7 +529,7 @@ public class FlowsParser {
             case TokenPunctuation cast when (cast.kind == TokenPunctuation.Kind.Exclamation ||
                     cast.kind == TokenPunctuation.Kind.Tilde) -> {
                 consumeNextToken();
-                Expression sub = parseExpression(idGenerator, null);
+                Expression sub = parseExpression7(idGenerator, null);
                 return new ExpressionUnaryOperator(
                         new SourceFilenameAndLocationRange(filename, start, lastTokenEndLocation),
                         cast.kind == TokenPunctuation.Kind.Exclamation ? ExpressionUnaryOperator.Kind.LogicalNot :
@@ -546,7 +550,7 @@ public class FlowsParser {
             }
             case TokenPunctuation cast when cast.kind == TokenPunctuation.Kind.OpeningRoundBracket -> {
                 consumeNextToken();
-                Expression result = parseExpression(idGenerator, null);
+                Expression result = parseExpression7(idGenerator, null);
                 expectPunctuation(TokenPunctuation.Kind.ClosingRoundBracket);
                 return result;
             }
@@ -574,7 +578,7 @@ public class FlowsParser {
                         lastTokenEndLocation);
                 consumeNextToken();
                 namedParameters.put(castName.value,
-                        new FieldOrParameter(keyLocationRange, parseExpression(idGenerator, null)));
+                        new FieldOrParameter(keyLocationRange, parseExpression7(idGenerator, null)));
                 return;
             }
             nameToConsume = castName;
@@ -587,7 +591,7 @@ public class FlowsParser {
         if (!namedParameters.isEmpty()) {
             throwParseException("Positional parameters cannot follow named parameters");
         }
-        positionalParameters.add(parseExpression(idGenerator, nameToConsume));
+        positionalParameters.add(parseExpression7(idGenerator, nameToConsume));
     }
 
     public void parse(CompilationElements result) throws ParseException {
@@ -635,7 +639,7 @@ public class FlowsParser {
             expectPunctuation(TokenPunctuation.Kind.Semicolon);
         }
         expectPunctuation(TokenPunctuation.Kind.ClosingCurlyBracket);
-        StructType type = new StructType(fields.toArray(new StructType.Field[0]));
+        StructType type = new StructType(fields.toArray(StructType.Field.EMPTY_ARRAY));
         if (result.types.put(typeName, type) != null) {
             throw new ParseException(new SourceFilenameAndLocationRange(filename, nameStart, nameEnd),
                     "Type '" + typeName + "' is redefined");
@@ -789,7 +793,7 @@ public class FlowsParser {
                     case While: {
                         consumeNextToken();
                         expectPunctuation(TokenPunctuation.Kind.OpeningRoundBracket);
-                        Expression condition = parseExpression(idGenerator, null);
+                        Expression condition = parseExpression7(idGenerator, null);
                         expectPunctuation(TokenPunctuation.Kind.ClosingRoundBracket);
                         StatementBlock body = parseStatementBlock(idGenerator);
                         statementList.add(new StatementIfWhile(
@@ -800,7 +804,7 @@ public class FlowsParser {
                     case If: {
                         consumeNextToken();
                         expectPunctuation(TokenPunctuation.Kind.OpeningRoundBracket);
-                        Expression condition = parseExpression(idGenerator, null);
+                        Expression condition = parseExpression7(idGenerator, null);
                         expectPunctuation(TokenPunctuation.Kind.ClosingRoundBracket);
                         StatementBlock thenBranch = parseStatementBlock(idGenerator);
                         StatementBlock elseBranch = null;
@@ -830,9 +834,10 @@ public class FlowsParser {
                         continue;
                     case Step:
                         consumeNextToken();
+                        SourceFilenameAndLocationRange locationRange = new SourceFilenameAndLocationRange(filename,
+                                statementStart, lastTokenEndLocation);
                         expectPunctuation(TokenPunctuation.Kind.Semicolon);
-                        statementList.add(new StatementStep(
-                                new SourceFilenameAndLocationRange(filename, statementStart, lastTokenEndLocation),
+                        statementList.add(new StatementStep(locationRange,
                                 null, idGenerator.generateId()));
                         continue;
                     default:
@@ -846,7 +851,7 @@ public class FlowsParser {
                 if (nextToken instanceof TokenPunctuation castPunctuation) {
                     if (castPunctuation.kind == TokenPunctuation.Kind.Assignment) {
                         consumeNextToken();
-                        Expression expression = parseExpression(idGenerator, null);
+                        Expression expression = parseExpression7(idGenerator, null);
                         expectPunctuation(TokenPunctuation.Kind.Semicolon);
                         statementList.add(new StatementExpression(
                                 new SourceFilenameAndLocationRange(filename, statementStart, lastTokenEndLocation),
@@ -861,7 +866,7 @@ public class FlowsParser {
                         continue;
                     }
                     if (castPunctuation.kind == TokenPunctuation.Kind.OpeningRoundBracket) {
-                        Expression expression = parseExpression(idGenerator, cast);
+                        Expression expression = parseExpression7(idGenerator, cast);
                         expectPunctuation(TokenPunctuation.Kind.Semicolon);
                         {
                             boolean writeFixedLength = name.equals("WriteFixedLength");
@@ -1020,7 +1025,7 @@ public class FlowsParser {
                 new SourceFilenameAndLocationRange(filename, start, lastTokenEndLocation), null, typeReference,
                 assignmentTargetLocationRange, variableName, idGenerator.generateId()));
         expectPunctuation(TokenPunctuation.Kind.Assignment);
-        Expression expression = parseExpression(idGenerator, null);
+        Expression expression = parseExpression7(idGenerator, null);
         statements.add(
                 new StatementExpression(new SourceFilenameAndLocationRange(filename, start, lastTokenEndLocation),
                         assignmentTargetLocationRange, variableName, expression, null, idGenerator.generateId()));

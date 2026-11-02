@@ -1,20 +1,17 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright 2026 Flows author <flows.dsl@proton.me>
 
-package dsl.flows.sde;
+package dsl.flows.sde.build;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 
-public record StreamErrorAdjuster(BufferedReader stream, ProcessOutputListener listener) implements Runnable {
-    public interface ProcessOutputListener {
-        void lineReceived(String line);
-    }
-
-    public static void waitWhileCheckingForOOM(Process vivadoProcess) throws InterruptedException, IOException {
-        while (!vivadoProcess.waitFor(100, TimeUnit.MILLISECONDS)) {
+public record StreamErrorAdjuster(BufferedReader stream, Consumer<String> listener) implements Runnable {
+    public static void waitWhileCheckingForOOM(Process process) throws InterruptedException, IOException {
+        while (!process.waitFor(100, TimeUnit.MILLISECONDS)) {
             try (BufferedReader br = new BufferedReader(new FileReader("/proc/meminfo"))) {
                 String line;
                 Long availableMemory = null;
@@ -24,7 +21,7 @@ public record StreamErrorAdjuster(BufferedReader stream, ProcessOutputListener l
                     }
                 }
                 if (availableMemory == null || availableMemory < 4000000) {
-                    new ProcessBuilder("kill", "--", "-" + vivadoProcess.pid()).start().waitFor();
+                    new ProcessBuilder("kill", "--", "-" + process.pid()).start().waitFor();
                     throw new RuntimeException("Available memory has been exhausted");
                 }
             }
@@ -41,13 +38,13 @@ public record StreamErrorAdjuster(BufferedReader stream, ProcessOutputListener l
                     if (bracketIndex != -1) {
                         int colonIndex = line.indexOf(':', bracketIndex + 1);
                         if (colonIndex != -1) {
-                            listener.lineReceived(line.substring(6, bracketIndex).trim());
-                            listener.lineReceived("\tat (" + line.substring(bracketIndex + 1, line.length() - 1) + ")");
+                            listener.accept(line.substring(6, bracketIndex).trim());
+                            listener.accept("\tat (" + line.substring(bracketIndex + 1, line.length() - 1) + ")");
                             continue;
                         }
                     }
                 }
-                listener.lineReceived(line);
+                listener.accept(line);
             }
         } catch (IOException notUsed) {
         }

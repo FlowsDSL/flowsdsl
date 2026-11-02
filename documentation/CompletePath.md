@@ -142,12 +142,12 @@ Open downloaded `au50_boardfiles_v1_3_20211104.zip` and extract its contents to 
 
 * Compile the compiler
 ```
-javac -d build/java -sourcepath java java/dsl/flows/sde/ui/Launcher.java java/dsl/flows/sde/ui/TraceViewer.java
+javac -d build/java -sourcepath java java/dsl/flows/sde/Launcher.java java/dsl/flows/sde/ui/TraceViewer.java
 cp -r java/dsl/flows/sde/resources build/java/dsl/flows/sde/
 ```
 * Open Flows 
 ```
-java -cp build/java dsl.flows.sde.ui.Launcher
+java -cp build/java dsl.flows.sde.Launcher
 ```
 
 * Set up path to Vivado, project directory and build directory on `Start` tab

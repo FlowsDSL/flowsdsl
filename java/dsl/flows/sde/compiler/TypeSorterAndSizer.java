@@ -3,7 +3,7 @@
 
 package dsl.flows.sde.compiler;
 
-import dsl.flows.sde.SourceFilenameAndLocationRange;
+import dsl.flows.sde.parser.SourceFilenameAndLocationRange;
 import dsl.flows.sde.models.types.OneOfType;
 import dsl.flows.sde.models.types.StructType;
 import dsl.flows.sde.models.types.Type;

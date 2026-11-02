@@ -21,8 +21,8 @@ transform CalculatorTransform (Request: BlankOrCalculatorRequest, Response: Blan
                     if (Slice(whole: MultiplyB, offsetInBits: 0, countInBits: 1) == 1) {
                         Product = Product + MultiplyA;
                     }
-                    MultiplyA = ShiftLeft(what: MultiplyA, howManyBits: 1);
-                    MultiplyB = ShiftRight(what: MultiplyB, howManyBits: 1);
+                    MultiplyA = MultiplyA << 1;
+                    MultiplyB = MultiplyB >> 1;
                     step;
                 }
                 Response = CalculatorResult{Value: Product};

@@ -4,13 +4,14 @@
 package dsl.flows.sde.models.terminals;
 
 import dsl.flows.sde.models.statements.Statement;
+import dsl.flows.sde.models.statements.StatementExpression;
 import dsl.flows.sde.models.statements.StatementStep;
 
 public final class VersionTerminalAssigned extends VersionTerminal {
     public final StatementStep region;
-    public final Statement statement;
+    public final StatementExpression statement;
 
-    public VersionTerminalAssigned(StatementStep region, Statement statement) {
+    public VersionTerminalAssigned(StatementStep region, StatementExpression statement) {
         this.region = region;
         this.statement = statement;
     }

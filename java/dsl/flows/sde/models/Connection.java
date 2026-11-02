@@ -3,7 +3,7 @@
 
 package dsl.flows.sde.models;
 
-import dsl.flows.sde.SourceFilenameAndLocationRange;
+import dsl.flows.sde.parser.SourceFilenameAndLocationRange;
 import dsl.flows.sde.models.types.TypeReference;
 
 public class Connection {

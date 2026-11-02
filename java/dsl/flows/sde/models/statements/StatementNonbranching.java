@@ -3,7 +3,7 @@
 
 package dsl.flows.sde.models.statements;
 
-import dsl.flows.sde.SourceFilenameAndLocationRange;
+import dsl.flows.sde.parser.SourceFilenameAndLocationRange;
 
 public class StatementNonbranching extends Statement {
     public Statement unconditionalSuccessor;

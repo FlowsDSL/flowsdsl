@@ -3,8 +3,10 @@
 
 package dsl.flows.sde.models.expressions;
 
-import dsl.flows.sde.SourceFilenameAndLocationRange;
+import dsl.flows.sde.parser.SourceFilenameAndLocationRange;
 import dsl.flows.sde.models.types.TypeReference;
+
+import java.util.function.Consumer;
 
 public class ExpressionIs extends Expression {
     public final Expression sub;
@@ -15,5 +17,10 @@ public class ExpressionIs extends Expression {
         super(locationRange, id);
         this.sub = sub;
         this.checkedType = checkedType;
+    }
+
+    @Override
+    public void forEachChild(Consumer<Expression> consumer) {
+        consumer.accept(sub);
     }
 }

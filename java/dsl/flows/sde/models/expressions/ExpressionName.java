@@ -3,10 +3,12 @@
 
 package dsl.flows.sde.models.expressions;
 
-import dsl.flows.sde.SourceFilenameAndLocationRange;
+import dsl.flows.sde.parser.SourceFilenameAndLocationRange;
 import dsl.flows.sde.models.NamedEntity;
 import dsl.flows.sde.models.statements.VariableOrPort;
 import dsl.flows.sde.models.types.BitType;
+
+import java.util.function.Consumer;
 
 public class ExpressionName extends Expression {
     public final String name;
@@ -23,5 +25,9 @@ public class ExpressionName extends Expression {
         this.name = variableOrPort.getName();
         this.resolvedEntity = variableOrPort;
         this.resolvedTypeReference = variableOrPort.getTypeReference(bitType);
+    }
+
+    @Override
+    public void forEachChild(Consumer<Expression> consumer) {
     }
 }

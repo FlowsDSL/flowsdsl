@@ -25,11 +25,11 @@ class BinaryDecisionTreePrinter {
         references = new int[tree.getSize()];
         for (int index = 0; index < references.length; index++) {
             BinaryDecisionTree.Node node = tree.get(index);
-            if (node.thenBranch >= 0) {
-                references[node.thenBranch]++;
+            if (node.thenBranch() >= 0) {
+                references[node.thenBranch()]++;
             }
-            if (node.elseBranch >= 0) {
-                references[node.elseBranch]++;
+            if (node.elseBranch() >= 0) {
+                references[node.elseBranch()]++;
             }
         }
     }
@@ -37,15 +37,15 @@ class BinaryDecisionTreePrinter {
     String getSubtree(int nodeIndex) {
         BinaryDecisionTree.Node node = tree.get(nodeIndex);
         if (variableOrPort != null) {
-            if (node.thenBranch == BinaryDecisionTree.NOT_REACHED_TERMINAL) {
-                return getSubtreeBranch(node.elseBranch);
+            if (node.thenBranch() == BinaryDecisionTree.NOT_REACHED_TERMINAL) {
+                return getSubtreeBranch(node.elseBranch());
             }
-            if (node.elseBranch == BinaryDecisionTree.NOT_REACHED_TERMINAL) {
-                return getSubtreeBranch(node.thenBranch);
+            if (node.elseBranch() == BinaryDecisionTree.NOT_REACHED_TERMINAL) {
+                return getSubtreeBranch(node.thenBranch());
             }
         }
-        return "(condition" + conditionPrefix + "_" + node.condition.suffixForVariables + " ? " +
-                getSubtreeBranch(node.thenBranch) + " : " + getSubtreeBranch(node.elseBranch) + ")";
+        return "(condition" + conditionPrefix + "_" + node.condition().suffixForVariables + " ? " +
+                getSubtreeBranch(node.thenBranch()) + " : " + getSubtreeBranch(node.elseBranch()) + ")";
     }
 
     String getSubtreeBranch(int nodeIndex) {

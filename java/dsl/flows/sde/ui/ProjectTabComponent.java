@@ -3,10 +3,15 @@
 
 package dsl.flows.sde.ui;
 
-import dsl.flows.sde.*;
+import dsl.flows.sde.build.*;
+import dsl.flows.sde.compiler.CompilationError;
 import dsl.flows.sde.compiler.Compiler;
 import dsl.flows.sde.generator.Generator;
 import dsl.flows.sde.models.CompilationElements;
+import dsl.flows.sde.parser.FlowsParser;
+import dsl.flows.sde.parser.ParseException;
+import dsl.flows.sde.parser.SourceFilenameAndLocationRange;
+import dsl.flows.sde.parser.SourceLocation;
 import dsl.flows.sde.resources.ResourceAnchor;
 import dsl.flows.sde.utility.LineSplitter;
 
@@ -24,26 +29,16 @@ import java.nio.file.Path;
 import java.util.LinkedList;
 import java.util.function.Consumer;
 
-public class ProjectTabComponent extends JPanel implements StreamErrorAdjuster.ProcessOutputListener, ActionListener {
-    static abstract class CompilationResult {
-    }
-
-    static class CompilationFailedTiming extends CompilationResult {
-    }
-
-    static class CompilationSucceeded extends CompilationResult {
-    }
-
+public final class ProjectTabComponent extends JPanel implements ActionListener, BuildResultListener {
     final SettingsSupplier settingsSupplier;
     final String projectName;
-    CompilationElements architecture;
+    CompilationElements compilationElements;
     EditorComponent editorComponent;
     JTabbedPane tabbedPane;
     DefaultTableModel errorsModel;
     JTextArea messages;
     JCheckBox includeTraceCheckbox;
     JButton buildButton, generateSourceButton;
-    CompilationResult compilationResult;
     Long runningVivadoProcess;
 
     public ProjectTabComponent(SettingsSupplier settingsSupplier, String projectName,
@@ -75,7 +70,7 @@ public class ProjectTabComponent extends JPanel implements StreamErrorAdjuster.P
         generateSourceButton.addActionListener(actionEvent -> {
             String buildPath = settingsSupplier.getBuildPath() + projectName;
             try {
-                new Generator(buildPath, architecture).generate();
+                new Generator(buildPath, compilationElements).generate();
             } catch (IOException | IllegalAccessException e) {
                 e.printStackTrace();
             }
@@ -127,35 +122,40 @@ public class ProjectTabComponent extends JPanel implements StreamErrorAdjuster.P
         messages.setText("");
         editorComponent.regenerateFragmentsIfPending();
         editorComponent.setEditingDisabledReason("Compilation is in progress, please wait for it to finish");
-        compilationResult = null;
         String vivadoPath = settingsSupplier.getVivadoPath();
         String buildPath = settingsSupplier.getBuildPath() + projectName;
         new Thread(() -> {
             String error = null;
-            long start = System.currentTimeMillis();
             try {
-                Generator generator = new Generator(buildPath, architecture);
+                Generator generator = new Generator(buildPath, compilationElements);
                 generator.generate();
                 ProcessBuilder builder = new ProcessBuilder("setsid", vivadoPath + "/bin/vivado", "-mode", "batch",
                         "-source", generator.outputDirectory + "/Compile.tcl").directory(
                         new File(generator.outputDirectory));
-                builder.environment().put("ALL_SOURCE_FILES", Generator.getAllFiles(architecture));
+                builder.environment().put("ALL_SOURCE_FILES", Generator.getAllFiles(compilationElements));
                 Process vivadoProcess = builder.start();
                 long finalPid = vivadoProcess.pid();
                 SwingUtilities.invokeLater(() -> {
                     runningVivadoProcess = finalPid;
                 });
+                BuildResultParser buildResultParser = new BuildResultParser(compilationElements, this);
                 new Thread(new StreamErrorAdjuster(
-                        new BufferedReader(new InputStreamReader(vivadoProcess.getInputStream())),
-                        ProjectTabComponent.this)).start();
+                        new BufferedReader(new InputStreamReader(vivadoProcess.getInputStream())), line -> {
+                    SwingUtilities.invokeLater(() -> {
+                        buildResultParser.accept(line);
+                        messages.append(line + "\n");
+                    });
+                })).start();
                 new Thread(new StreamErrorAdjuster(
-                        new BufferedReader(new InputStreamReader(vivadoProcess.getErrorStream())),
-                        ProjectTabComponent.this)).start();
+                        new BufferedReader(new InputStreamReader(vivadoProcess.getErrorStream())), line -> {
+                    SwingUtilities.invokeLater(() -> {
+                        messages.append(line + "\n");
+                    });
+                })).start();
                 StreamErrorAdjuster.waitWhileCheckingForOOM(vivadoProcess);
             } catch (IOException | IllegalAccessException | InterruptedException exception) {
                 error = exception.getMessage();
             }
-            long elapsed = System.currentTimeMillis() - start;
             String finalError = error;
             SwingUtilities.invokeLater(() -> {
                 runningVivadoProcess = null;
@@ -164,29 +164,21 @@ public class ProjectTabComponent extends JPanel implements StreamErrorAdjuster.P
                 buildButton.setEnabled(true);
                 generateSourceButton.setEnabled(true);
                 editorComponent.setEditingDisabledReason(null);
-                if (compilationResult instanceof CompilationFailedTiming cast) {
-                    JOptionPane.showMessageDialog(ProjectTabComponent.this, "Compilation failed", "Failed",
-                            JOptionPane.INFORMATION_MESSAGE);
-                } else if (compilationResult instanceof CompilationSucceeded) {
-                    JOptionPane.showMessageDialog(ProjectTabComponent.this,
-                            "Compilation successful in " + (elapsed / 1000) + " seconds", "Success",
-                            JOptionPane.INFORMATION_MESSAGE);
-                }
             });
         }).start();
     }
 
     public EditorComponent.Highlighting generateHighlighting(String[] sourceText) {
         try {
-            architecture = new CompilationElements(includeTraceCheckbox.isSelected(), false);
+            compilationElements = new CompilationElements(includeTraceCheckbox.isSelected(), false);
             boolean compileEnabled;
             LinkedList<EditorComponent.Underline> underlines = new LinkedList<>();
             try {
                 new FlowsParser("base.flows", LineSplitter.splitLines(
                         Files.readString(Path.of(ResourceAnchor.class.getResource("flows/base.flows").toURI()))),
-                        false).parse(architecture);
-                new FlowsParser(projectName, sourceText, false).parse(architecture);
-                Compiler compiler = new Compiler(architecture);
+                        false).parse(compilationElements);
+                new FlowsParser(projectName, sourceText, false).parse(compilationElements);
+                Compiler compiler = new Compiler(compilationElements);
                 compiler.compile();
                 compileEnabled = true;
                 LinkedList<Object[]> newData = new LinkedList<>();
@@ -250,20 +242,25 @@ public class ProjectTabComponent extends JPanel implements StreamErrorAdjuster.P
         return current;
     }
 
-    @Override
-    public void lineReceived(String line) {
-        SwingUtilities.invokeLater(() -> {
-            if (line.startsWith("#FailedTiming ")) {
-                compilationResult = new CompilationFailedTiming();
-            }
-            if (line.equals("#Success")) {
-                compilationResult = new CompilationSucceeded();
-            }
-            messages.append(line + "\n");
-        });
-    }
-
     boolean isContentModified() {
         return editorComponent.isContentModified();
+    }
+
+    @Override
+    public void showBuildResult(BuildResult buildResult, long elapsed) {
+        SwingUtilities.invokeLater(() -> {
+            if (buildResult instanceof BuildFailedTiming cast) {
+                editorComponent.setSourceGraph(cast.failedPath);
+                JOptionPane.showMessageDialog(ProjectTabComponent.this, String.format(
+                        "The highlighted path takes about %d%% longer than one step allows." +
+                                (cast.failedPath.length != 0 ?
+                                        "\nPlease review the highlighted path and split it into multiple steps." : ""),
+                        (int) (cast.slackFraction * 100)), "Build failed", JOptionPane.INFORMATION_MESSAGE);
+            } else if (buildResult instanceof BuildSucceeded) {
+                JOptionPane.showMessageDialog(ProjectTabComponent.this,
+                        "Build successful in " + (elapsed / 1000) + " seconds", "Build succeeded",
+                        JOptionPane.INFORMATION_MESSAGE);
+            }
+        });
     }
 }

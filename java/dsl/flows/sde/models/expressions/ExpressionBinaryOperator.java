@@ -3,12 +3,14 @@
 
 package dsl.flows.sde.models.expressions;
 
-import dsl.flows.sde.SourceFilenameAndLocationRange;
+import dsl.flows.sde.parser.SourceFilenameAndLocationRange;
+
+import java.util.function.Consumer;
 
 public class ExpressionBinaryOperator extends Expression {
     public enum Kind {
-        Equals, NotEquals, BooleanAnd, BooleanOr, Less, More, LessOrEqual, MoreOrEqual, BitwiseOr, IntegerSum,
-        IntegerDifference, IntegerProduct
+        Equals, NotEquals, BooleanAnd, BooleanOr, Less, More, LessOrEqual, MoreOrEqual, BitwiseOr, BitwiseXOr, IntegerSum,
+        IntegerDifference, IntegerProduct, BitwiseShiftLeft, BitwiseShiftRight
     }
 
     public final Kind kind;
@@ -20,5 +22,11 @@ public class ExpressionBinaryOperator extends Expression {
         this.kind = kind;
         this.a = a;
         this.b = b;
+    }
+
+    @Override
+    public void forEachChild(Consumer<Expression> consumer) {
+        consumer.accept(a);
+        consumer.accept(b);
     }
 }

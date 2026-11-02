@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright 2026 Flows author <flows.dsl@proton.me>
 
-package dsl.flows.sde;
+package dsl.flows.sde.parser;
 
 public record SourceLocation(int line, int position) implements Comparable<SourceLocation> {
     public String toString() {

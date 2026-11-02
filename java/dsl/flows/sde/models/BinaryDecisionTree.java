@@ -8,16 +8,9 @@ import dsl.flows.sde.models.statements.StatementIfWhile;
 import java.util.ArrayList;
 import java.util.Arrays;
 
-public class BinaryDecisionTree {
-    public final static class Node {
-        public final StatementIfWhile condition;
-        public final int thenBranch, elseBranch;
-
-        public Node(StatementIfWhile condition, int thenBranch, int elseBranch) {
-            this.condition = condition;
-            this.thenBranch = thenBranch;
-            this.elseBranch = elseBranch;
-        }
+public record BinaryDecisionTree(Node[] nodes, int root) {
+    public record Node(StatementIfWhile condition, int thenBranch, int elseBranch) {
+        static final Node[] EMPTY_ARRAY = new Node[0];
     }
 
     public static final int NOT_REACHED_TERMINAL = -3;
@@ -25,18 +18,6 @@ public class BinaryDecisionTree {
 
     public static final BinaryDecisionTree NOT_REACHED = new BinaryDecisionTree(new Node[0], NOT_REACHED_TERMINAL);
     public static final BinaryDecisionTree REACHED = new BinaryDecisionTree(new Node[0], REACHED_TERMINAL);
-
-    private final Node[] nodes;
-    private final int root;
-
-    public BinaryDecisionTree(Node[] nodes, int root) {
-        this.nodes = nodes;
-        this.root = root;
-    }
-
-    public int getRoot() {
-        return root;
-    }
 
     public Node get(int index) {
         return nodes[index];
@@ -59,7 +40,7 @@ public class BinaryDecisionTree {
         Arrays.fill(aMapping, -1);
         Arrays.fill(bMapping, -1);
         int newRoot = mergeInto(a.nodes, a.root, aMapping, b.nodes, b.root, bMapping, abMapping, newNodes);
-        return new BinaryDecisionTree(newNodes.toArray(new Node[newNodes.size()]), newRoot);
+        return new BinaryDecisionTree(newNodes.toArray(Node.EMPTY_ARRAY), newRoot);
     }
 
     private static int mergeInto(Node[] aNodes, int aIndex, int[] aMapping, Node[] bNodes, int bIndex, int[] bMapping,

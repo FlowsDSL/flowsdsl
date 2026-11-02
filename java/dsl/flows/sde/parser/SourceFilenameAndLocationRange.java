@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright 2026 Flows author <flows.dsl@proton.me>
 
-package dsl.flows.sde;
+package dsl.flows.sde.parser;
 
 public class SourceFilenameAndLocationRange extends SourceLocationRange {
     public final String filename;

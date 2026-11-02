@@ -3,7 +3,7 @@
 
 package dsl.flows.sde.models;
 
-import dsl.flows.sde.SourceLocationRange;
+import dsl.flows.sde.parser.SourceLocationRange;
 import dsl.flows.sde.models.types.TypeReference;
 
 import java.util.LinkedList;

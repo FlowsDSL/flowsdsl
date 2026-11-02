@@ -3,7 +3,7 @@
 
 package dsl.flows.sde.models.statements;
 
-import dsl.flows.sde.SourceFilenameAndLocationRange;
+import dsl.flows.sde.parser.SourceFilenameAndLocationRange;
 import dsl.flows.sde.models.expressions.Expression;
 
 public class StatementIfWhile extends Statement {

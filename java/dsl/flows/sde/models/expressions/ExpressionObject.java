@@ -3,10 +3,11 @@
 
 package dsl.flows.sde.models.expressions;
 
-import dsl.flows.sde.SourceFilenameAndLocationRange;
+import dsl.flows.sde.parser.SourceFilenameAndLocationRange;
 import dsl.flows.sde.models.types.TypeReference;
 
 import java.util.Map;
+import java.util.function.Consumer;
 
 public class ExpressionObject extends Expression {
     public final Map<String, FieldOrParameter> fields;
@@ -16,5 +17,12 @@ public class ExpressionObject extends Expression {
         super(locationRange, id);
         this.resolvedTypeReference = typeReference;
         this.fields = fields;
+    }
+
+    @Override
+    public void forEachChild(Consumer<Expression> consumer) {
+        for (FieldOrParameter field : fields.values()) {
+            consumer.accept(field.expression());
+        }
     }
 }

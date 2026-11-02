@@ -1,30 +1,42 @@
-# Working Ping Responder First, Clock Domain Crossings Later
+# Flows: scaling sophistication in hardware
 
-The usual learning path for FPGA programming starts with logic gates, flip-flops and timing, then a hardware description language, and reaches a working application
-after months. This guide starts with a working ping responder, written in familiar C-like notation, and introduces each concept when the trace shows why it matters.
+A language and toolchain for writing sophisticated hardware control logic as sequential code
+with explicit clock cycles: correct by construction, and traced back to source on real hardware.
 
-You don't need to learn about setup/hold times, clock domains and timing violations **to get started**. Same fundamentals, different order: you'll meet them when
-they become critical, and master them gradually.
+* **Explicit:** you place every cycle boundary with `step`; the compiler writes the FSM. Closer to Handel-C or Bluespec than to HLS
+  ([comparison](#related-approaches)).
+* **Correct by construction:** handshakes with backpressure, connection and driver checks, a single clock domain with crossings handled by the platform.
+* **Observable:** cycle-by-cycle traces mapped to your source, built in from the first build.
 
-Flows, a C-like high-level language, and its tooling exist to make this path possible. You decide what happens in each step, and the compiler works out the
-hardware details that follow:
-* a transform is ordinary sequential code with loops, branches and early exits; the `step` keyword marks where one step ends and the next begins
-* within a step, you can assign a variable several times, just like in software ([see how](documentation/Compiler.md))
-* transforms run in parallel, connected by queues in a `system` block; a queue makes the sender wait when the receiver isn't ready
-* the hardware streams every transform's state to the host, so you debug against your source, step by step, on the board
-
-The ping responder below, written in Flows, demonstrates the approach. It is compiled to a hardware flash image (known as bitfile) in a single build step.
-
-One of the key components of this approach is transparency - generated FPGA bitfile collects traces of internal state of your program in hardware and sends them to
-the host CPU. You can see what FPGA did on every step, in terms of your source code (line numbers, transforms, variables). It is a part of the hardware program from
-very beginning, so when something unexpected happens the trace is already there.
-
-All traces in this documentation were captured on an Alveo U50, not in simulation. The ping responder runs on the FPGA
+All traces in this documentation were captured on an Alveo U50, not in simulation. The ping responder below runs on the FPGA
 card and answers real ping requests from another computer, keeping up with 10 Gigabit Ethernet at full speed and
 starting each reply before the request has finished arriving. [This page](documentation/CompletePath.md) shows how to run the
 `PingResponder` example on FPGA and includes the complete trace.
 
-## How
+## What it's for
+
+* **Learning hardware:** learn to think in hardware as you go. Start with simple designs that are still correct by construction,
+  see in the trace what the hardware did in every cycle, and learn more hardware concepts as they're needed rather than upfront.
+* **RTL engineers:** write control-heavy logic (protocol handling, queues, data movement) without hand-writing the FSM, and check
+  the result yourself: the [compiler page](documentation/Compiler.md) shows how source maps to readable SystemVerilog, and the
+  [platform page](documentation/Platform.md) compares resource usage with vendor IP.
+* **Hardware teams:** change cycle timing with small source diffs instead of FSM rewrites, catch connection and handshake
+  mistakes at compile time, and give everyone the same source-level view of what the hardware did.
+
+## How it works
+
+Flows is a language with familiar control flow (loops, branches, early exits) and [explicit clock cycles](#how-is-this-different-from-software).
+You decide what happens in each step, and the compiler works out the hardware details that follow:
+* a transform is ordinary sequential code; the `step` keyword marks where one step ends and the next begins
+* within a step, you can assign a variable several times, just like in software ([see how](documentation/Compiler.md))
+* transforms run in parallel, connected by queues in a `system` block; a queue makes the sender wait when the receiver isn't ready
+* the hardware streams every transform's state to the host, so you debug against your source (line numbers, transforms, variables),
+  step by step, on the board. Tracing is part of the hardware program from the first build, so when something unexpected happens
+  the trace is already there
+
+The ping responder below demonstrates the approach. It is compiled to a hardware flash image (known as bitfile) in a single build step.
+
+## From source to bitfile
 
 The Flows compiler translates source code into SystemVerilog (low-level hardware description language). Vivado (AMD's
 FPGA toolchain) then builds that into a hardware flash image. Hand-written SystemVerilog plumbing connects the compiled
@@ -260,12 +272,14 @@ I have other projects competing for my time, so expect progress to be steady but
   Unsupported operations on BAR 0 are left without completions and will likely hang the host.
 * The kernel driver makes `/dev/fpga_dma_device` readable and writable by every local user, which is fine on a personal
   machine; on a shared one, restrict it with a udev rule (mode 0660 and a dedicated group)
+* The Ethernet MAC/PCS doesn't handle errors yet: frames with bad FCS, runt/oversize frames and link loss are not
+  detected or reported
 
 ### Language and compiler
 
 * An output port group can connect to only one destination; fan-out from wires is rejected by the compiler (needs a small change)
 * AssertingPush and AssertingPop don't end the step, so using the same queue twice in one step with them acts on one slot: the
-* second push replaces the first, and the second pop reads the same element again. The compiler doesn't check this yet.
+  second push replaces the first, and the second pop reads the same element again. The compiler doesn't check this yet.
   `BlockingPush` and `BlockingPop` end their step, so they're safe
 * Accessing a field of a `oneof` doesn't check which option is currently stored; reading the wrong option returns that option's
   bits reinterpreted

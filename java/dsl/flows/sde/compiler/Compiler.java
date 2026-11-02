@@ -3,7 +3,7 @@
 
 package dsl.flows.sde.compiler;
 
-import dsl.flows.sde.SourceFilenameAndLocationRange;
+import dsl.flows.sde.parser.SourceFilenameAndLocationRange;
 import dsl.flows.sde.models.*;
 import dsl.flows.sde.models.expressions.*;
 import dsl.flows.sde.models.statements.*;
@@ -231,15 +231,14 @@ public class Compiler {
 
     private void compileTransformRegion(StatementStep region, Transform transform) {
         boolean[] inRegion = new boolean[transform.idGenerator.getCounter()];
-        LinkedList<StatementStep> allTerminations = new LinkedList<>();
         RegionMarker regionMarker = new RegionMarker(compilationErrorList,
-                new boolean[transform.idGenerator.getCounter()], inRegion, allTerminations);
+                new boolean[transform.idGenerator.getCounter()], inRegion, region.terminatingRegions);
         regionMarker.markRegionAndCollectTerminations(region.unconditionalSuccessor);
         if (regionMarker.foundCycle) {
             return;
         }
-        for (StatementStep termination : allTerminations) {
-            new ReachabilityTreeBuilder(region, inRegion).build(termination);
+        for (StatementStep.TerminatingRegionAndVersion terminatingRegion : region.terminatingRegions) {
+            new ReachabilityTreeBuilder(region, inRegion).build(terminatingRegion.terminatingRegion);
         }
         for (VariableOrPort variableOrPort : transform.variablesOrPorts) {
             for (Statement mergePoint : region.mergePoints) {
@@ -281,7 +280,7 @@ public class Compiler {
                                                 findLastAssignedValue(region, variableOrPort, predecessor))));
                     }
                 }
-                if (mergePointTree.getRoot() != BinaryDecisionTree.NOT_REACHED_TERMINAL) {
+                if (mergePointTree.root() != BinaryDecisionTree.NOT_REACHED_TERMINAL) {
                     mergePoint.regionAttributes.get(region).mergedValueByVariableOrPort.put(variableOrPort,
                             new BinaryDecisionTreeAndVariableTerminals(mergePointTree,
                                     mergePointTerminals.list.toArray(VersionTerminal.EMPTY_LIST)));
@@ -303,12 +302,15 @@ public class Compiler {
             }
             BinaryDecisionTree nextStateTree = BinaryDecisionTree.NOT_REACHED;
             TerminalListBuilder nextStateTerminals = new TerminalListBuilder();
-            for (StatementStep termination : allTerminations) {
+            for (StatementStep.TerminatingRegionAndVersion termination : region.terminatingRegions) {
+                VersionTerminal version = getVersionAtStatementEntry(termination.terminatingRegion, region,
+                        variableOrPort);
+                termination.versionByVariableOrPort.put(variableOrPort, version);
                 nextStateTree = BinaryDecisionTree.merge(nextStateTree, BinaryDecisionTree.replaceReachedWithTerminal(
-                        termination.regionAttributes.get(region).reachabilityTree,
-                        nextStateTerminals.add(getVersionAtStatementEntry(termination, region, variableOrPort))));
+                        termination.terminatingRegion.regionAttributes.get(region).reachabilityTree,
+                        nextStateTerminals.add(version)));
             }
-            region.variableNextState.put(variableOrPort, new BinaryDecisionTreeAndVariableTerminals(nextStateTree,
+            region.nextStateByVariable.put(variableOrPort, new BinaryDecisionTreeAndVariableTerminals(nextStateTree,
                     nextStateTerminals.list.toArray(VersionTerminal.EMPTY_LIST)));
         }
     }
@@ -661,7 +663,7 @@ public class Compiler {
     static VersionTerminal findLastAssignedValue(StatementStep region, VariableOrPort variableOrPort, Statement node) {
         while (true) {
             if (node instanceof StatementExpression cast && cast.resolvedAssignmentTarget == variableOrPort) {
-                return new VersionTerminalAssigned(region, node);
+                return new VersionTerminalAssigned(region, cast);
             }
             if (node instanceof StatementStep) {
                 return VersionTerminalBeginningOfCycle.INSTANCE;

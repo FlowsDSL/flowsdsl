@@ -3,7 +3,9 @@
 
 package dsl.flows.sde.models.expressions;
 
-import dsl.flows.sde.SourceFilenameAndLocationRange;
+import dsl.flows.sde.parser.SourceFilenameAndLocationRange;
+
+import java.util.function.Consumer;
 
 public class ExpressionPart extends Expression {
     public final Expression sub;
@@ -13,5 +15,10 @@ public class ExpressionPart extends Expression {
         super(locationRange, id);
         this.sub = sub;
         this.name = name;
+    }
+
+    @Override
+    public void forEachChild(Consumer<Expression> consumer) {
+        consumer.accept(sub);
     }
 }

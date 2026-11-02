@@ -3,8 +3,7 @@
 
 package dsl.flows.sde.compiler;
 
-import dsl.flows.sde.CompilationError;
-import dsl.flows.sde.SourceFilenameAndLocationRange;
+import dsl.flows.sde.parser.SourceFilenameAndLocationRange;
 
 import java.util.LinkedList;
 

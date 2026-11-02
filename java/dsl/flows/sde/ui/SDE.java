@@ -3,252 +3,17 @@
 
 package dsl.flows.sde.ui;
 
-import dsl.flows.sde.*;
-import dsl.flows.sde.compiler.Compiler;
-import dsl.flows.sde.generator.Generator;
-import dsl.flows.sde.models.CompilationElements;
-import dsl.flows.sde.resources.ResourceAnchor;
-import dsl.flows.sde.utility.LineSplitter;
-
 import javax.swing.*;
-import javax.swing.event.DocumentEvent;
-import javax.swing.event.DocumentListener;
 import java.awt.*;
 import java.awt.event.*;
-import java.io.*;
-import java.net.URISyntaxException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.Arrays;
-import java.util.Comparator;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.PrintStream;
 import java.util.Map;
-import java.util.TreeMap;
 
-public class Launcher {
-    record ListEntry(String name, boolean valid) {
-        @Override
-        public String toString() {
-            return name;
-        }
-    }
-
-    static class ValidityIndicator extends JComponent {
-        boolean active;
-
-        @Override
-        public void paintComponent(Graphics g) {
-            super.paintComponent(g);
-            if (active) {
-                g.setColor(Color.RED);
-                g.fillOval(0, 0, getWidth(), getHeight());
-            }
-        }
-    }
-
-    record DirectorySuggester(JTextField textField, JWindow listWindow, DefaultListModel<ListEntry> listModel,
-                              JList<ListEntry> list, Runnable textChangedListener) {
-        void addListeners() {
-            textField.addFocusListener(new FocusAdapter() {
-                @Override
-                public void focusGained(FocusEvent e) {
-                    updateSuggestions();
-                }
-
-                @Override
-                public void focusLost(FocusEvent e) {
-                    updateSuggestions();
-                }
-            });
-            textField.getDocument().addDocumentListener(new DocumentListener() {
-                @Override
-                public void insertUpdate(DocumentEvent e) {
-                    updateSuggestions();
-                    textChangedListener.run();
-                }
-
-                @Override
-                public void removeUpdate(DocumentEvent e) {
-                    updateSuggestions();
-                    textChangedListener.run();
-                }
-
-                @Override
-                public void changedUpdate(DocumentEvent e) {
-                    updateSuggestions();
-                    textChangedListener.run();
-                }
-            });
-            textField.addKeyListener(new KeyAdapter() {
-                @Override
-                public void keyPressed(KeyEvent e) {
-                    if (e.getKeyCode() == KeyEvent.VK_ENTER) {
-                        ListEntry value = list.getSelectedValue();
-                        if (value != null && value.valid &&
-                                textField.getSelectionEnd() == textField.getSelectionStart()) {
-                            String text = textField.getText();
-                            textField.setText(
-                                    (text.startsWith("/") ? "" : "/") + text.substring(0, text.lastIndexOf('/') + 1) +
-                                            value.name + "/");
-                        }
-                    }
-                    if (e.getKeyCode() == KeyEvent.VK_UP) {
-                        list.setSelectedIndex(list.getSelectedIndex() - 1);
-                        list.scrollRectToVisible(list.getCellBounds(list.getSelectedIndex(), list.getSelectedIndex()));
-                    }
-                    if (e.getKeyCode() == KeyEvent.VK_DOWN) {
-                        list.setSelectedIndex(list.getSelectedIndex() + 1);
-                        list.scrollRectToVisible(list.getCellBounds(list.getSelectedIndex(), list.getSelectedIndex()));
-                    }
-                }
-            });
-        }
-
-        void updateSuggestions() {
-            String text = textField.getText();
-            if (textField.isFocusOwner()) {
-                int index = text.lastIndexOf('/');
-                File[] files = new File(index <= 0 ? "/" : text.substring(0, index)).listFiles(File::isDirectory);
-                Point textFieldLocationOnScreen = textField.getLocationOnScreen();
-                listWindow.setLocation(
-                        textFieldLocationOnScreen.x + textField.getFontMetrics(textField.getFont()).stringWidth(text) -
-                                textField.getScrollOffset(), textFieldLocationOnScreen.y + textField.getHeight());
-                listModel.removeAllElements();
-                if (files != null) {
-                    Arrays.sort(files, Comparator.comparing(File::getName));
-                    String prefix = text.substring(index + 1);
-                    for (File file : files) {
-                        if (file.getName().startsWith(prefix)) {
-                            listModel.addElement(new ListEntry(file.getName(), true));
-                        }
-                    }
-                    if (files.length == 0) {
-                        listModel.addElement(new ListEntry("No directories found", false));
-                    }
-                } else {
-                    listModel.addElement(new ListEntry("Directory not found", false));
-                }
-                listWindow.setVisible(true);
-            } else {
-                listWindow.setVisible(false);
-            }
-        }
-    }
-
-    static class LabelAndTextField {
-        final ValidityIndicator validityIndicator;
-        final JLabel label;
-        final JTextField textField;
-
-        LabelAndTextField(String text, String value, JPanel startPanel) {
-            validityIndicator = new ValidityIndicator();
-            label = new JLabel(text + " ");
-            textField = new JTextField(value);
-            startPanel.add(validityIndicator);
-            startPanel.add(label);
-            startPanel.add(textField);
-        }
-
-        void position(int y, int width, int textHeight, int labelWidth) {
-            validityIndicator.setBounds(textHeight / 4, y + textHeight / 4, textHeight / 2, textHeight / 2);
-            label.setBounds(textHeight, y, labelWidth, textHeight);
-            textField.setBounds(textHeight + labelWidth, y, width - textHeight - labelWidth, textHeight);
-        }
-    }
-
-    public static void main(String[] args)
-            throws IllegalAccessException, URISyntaxException, IOException, ParseException, InterruptedException {
-        boolean batch = false;
-        boolean skipBitfile = false;
-        boolean includeTracing = true;
-        String projectName = null;
-        for (String arg : args) {
-            if (arg.isEmpty()) {
-                throw new RuntimeException("Empty arguments are not valid");
-            }
-            if (arg.charAt(0) == '-') {
-                if (arg.equals("-batch")) {
-                    batch = true;
-                } else if (arg.equals("-skipBitfile")) {
-                    skipBitfile = true;
-                } else if (arg.equals("-doNotIncludeTracing")) {
-                    includeTracing = false;
-                } else {
-                    throw new RuntimeException("Invalid option: " + arg);
-                }
-            } else {
-                if (projectName != null) {
-                    throw new RuntimeException("Cannot specify multiple projects");
-                }
-                projectName = arg;
-            }
-        }
-        Map<String, String> settingsMap = new TreeMap<>();
-        String settingsFileName = System.getenv("HOME") + "/.flowsSettings";
-        try (BufferedReader reader = new BufferedReader(new FileReader(settingsFileName))) {
-            String line;
-            while ((line = reader.readLine()) != null) {
-                int equals = line.indexOf('=');
-                if (equals != -1) {
-                    settingsMap.put(line.substring(0, equals), line.substring(equals + 1));
-                }
-            }
-        } catch (FileNotFoundException _) {
-        } catch (IOException exception) {
-            if (batch) {
-                exception.printStackTrace();
-                System.exit(1);
-            } else {
-                JOptionPane.showMessageDialog(null, exception.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
-            }
-            return;
-        }
-        if (batch) {
-            if (projectName == null) {
-                throw new RuntimeException("Please specify project name for batch mode");
-            }
-            String buildPath = settingsMap.get("buildPath");
-            String vivadoPath = settingsMap.get("vivadoPath");
-            String projectsPath = settingsMap.get("projectsPath");
-            if (buildPath == null || vivadoPath == null || projectsPath == null) {
-                throw new RuntimeException(
-                        "Please set build path, vivado path and project path in interactive mode before using batch mode");
-            }
-            CompilationElements architecture = new CompilationElements(includeTracing, false);
-            new FlowsParser("base.flows", LineSplitter.splitLines(
-                    Files.readString(Path.of(ResourceAnchor.class.getResource("flows/base.flows").toURI()))),
-                    false).parse(architecture);
-            new FlowsParser(projectName, LineSplitter.splitLines(Files.readString(Path.of(projectsPath, projectName))),
-                    false).parse(architecture);
-            Compiler compiler = new Compiler(architecture);
-            compiler.compile();
-            if (!compiler.compilationErrorList.list.isEmpty()) {
-                for (CompilationError error : compiler.compilationErrorList.list) {
-                    System.err.println(error);
-                }
-                System.exit(1);
-                return;
-            }
-            Generator generator = new Generator(buildPath + projectName, architecture);
-            generator.generate();
-            if (skipBitfile) {
-                System.err.println("Compilation successful, output files written to " + generator.outputDirectory);
-                System.exit(0);
-            }
-            ProcessBuilder builder = new ProcessBuilder("setsid", vivadoPath + "/bin/vivado", "-mode", "batch",
-                    "-source", generator.outputDirectory + "/Compile.tcl").directory(
-                    new File(generator.outputDirectory));
-            builder.environment().put("ALL_SOURCE_FILES", Generator.getAllFiles(architecture));
-            Process vivadoProcess = builder.start();
-            new Thread(
-                    new StreamErrorAdjuster(new BufferedReader(new InputStreamReader(vivadoProcess.getInputStream())),
-                            System.out::println)).start();
-            new Thread(
-                    new StreamErrorAdjuster(new BufferedReader(new InputStreamReader(vivadoProcess.getErrorStream())),
-                            System.out::println)).start();
-            StreamErrorAdjuster.waitWhileCheckingForOOM(vivadoProcess);
-            System.exit(vivadoProcess.exitValue());
-            return;
-        }
+public class SDE {
+    public static void start(String settingsFileName, Map<String, String> settingsMap) {
         SwingUtilities.invokeLater(() -> {
             JFrame frame = new JFrame("Flows");
             frame.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
@@ -266,8 +31,8 @@ public class Launcher {
             }
             JPanel startPanel = new JPanel();
             startPanel.setLayout(null);
-            LabelAndTextField vivadoDirectory = new LabelAndTextField("Path to Vivado:", settingsMap.get("vivadoPath"),
-                    startPanel);
+            LabelAndTextField vivadoDirectory = new LabelAndTextField("Path to Vivado:",
+                    settingsMap.get("vivadoPath"), startPanel);
             LabelAndTextField projectsDirectory = new LabelAndTextField("Path to projects:",
                     settingsMap.get("projectsPath"), startPanel);
             LabelAndTextField buildDirectory = new LabelAndTextField("Path to build directory:",
@@ -492,6 +257,7 @@ public class Launcher {
         });
     }
 
+
     private static ProjectTabComponent openProjectTab(SettingsSupplier settingsSupplier, String name, JTabbedPane tab,
                                                       int tabCount) {
         if (!new File(settingsSupplier.getProjectPath() + name).exists()) {
@@ -529,5 +295,9 @@ public class Launcher {
 
     private static String getText(String name, boolean status) {
         return (status ? "* " : "") + name + " \u274c";
+    }
+
+    public static void showErrorMessage(String message) {
+        JOptionPane.showMessageDialog(null, message, "Error", JOptionPane.ERROR_MESSAGE);
     }
 }

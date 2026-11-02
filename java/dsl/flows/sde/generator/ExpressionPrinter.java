@@ -77,22 +77,6 @@ class ExpressionPrinter {
                     output.append("]");
                     return;
                 }
-                case "ShiftLeft" -> {
-                    output.append("(");
-                    print(cast.namedParameters.get("what").expression());
-                    output.append(") << (");
-                    print(cast.namedParameters.get("howManyBits").expression());
-                    output.append(")");
-                    return;
-                }
-                case "ShiftRight" -> {
-                    output.append("(");
-                    print(cast.namedParameters.get("what").expression());
-                    output.append(") >> (");
-                    print(cast.namedParameters.get("howManyBits").expression());
-                    output.append(")");
-                    return;
-                }
                 case "Min" -> {
                     printMinMax(cast, (a, b) -> a + "<" + b + "?" + a + ":" + b);
                     return;
@@ -188,6 +172,15 @@ class ExpressionPrinter {
                 case BooleanOr:
                 case BitwiseOr:
                     output.append("|");
+                    break;
+                case BitwiseXOr:
+                    output.append("^");
+                    break;
+                case BitwiseShiftLeft:
+                    output.append("<<");
+                    break;
+                case BitwiseShiftRight:
+                    output.append(">>");
                     break;
                 case IntegerSum:
                     output.append("+");
